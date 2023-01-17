@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Improving your workflow through projects</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Improving your workflow through
+projects</h1>
+<h3 class="subtitle">FORHME</h3>
+<h4 class="date">updated on 2022-12-20</h4>
+
+
+
+<p>Everything that follows in this tutorial should be a viewed as
+<em>suggestions</em> for how to organize your data, code, and results.
+These suggestions are based on hard-won lessons from my own work as well
+as advice from people who spend a lot of time thinking about efficient
+and reproducible workflows. The lessons below are unabashedly R/RStudio
+focused. However, they are just suggestions. There are many other ways
+of accomplishing these objectives so you are free to use whatever
+workflow works best for you. Even if you choose to use different
+workflows or tools that are not as R-focused, hopefully the concepts
+presented here will help make your process more efficient and
+organized.</p>
+<div id="common-workflows-and-their-problems" class="section level1">
+<h1>Common workflows and their problems</h1>
+<p>A common workflow used by many novice R users goes something like
+this:</p>
+<ol style="list-style-type: decimal">
+<li><p>Open RStudio</p></li>
+<li><p>Create a script and save it as
+<code>analysis_for_my_project.R</code></p></li>
+<li><p>Start the script with:</p></li>
+</ol>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">&quot;C:\Users</span><span class="sc">\b</span><span class="st">pease\path\specific</span><span class="sc">\t</span><span class="st">o\my\machine&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(package1)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(package2)</span></code></pre></div>
+<ol start="4" style="list-style-type: decimal">
+<li>Create a bunch of objects and do stuff to them:</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> <span class="st">&quot;cheese&quot;</span></span></code></pre></div>
+<ol start="5" style="list-style-type: decimal">
+<li><p>Start googling around because you are stuck on some code. Paste
+in Stack Overflow suggestions with generic object names.</p></li>
+<li><p>Get confused about what objects in your current environment were
+created by which script</p></li>
+<li><p><code>rm(list = ls())</code> to start from scratch</p></li>
+<li><p>Rinse and repeat</p></li>
+</ol>
+<div id="whats-wrong-with-this" class="section level2">
+<h2>What’s wrong with this?</h2>
+<p>Remember that when you open R, you create a <em>global
+workspace</em>. This is where all of the objects you create get stored.
+If you type <code>ls()</code> you can see everything that is currently
+stored in your workspace. If you are working on different analyses in
+the same global environment, it is <em>very</em> easy to accidentally
+create different objects with the same name, write code that depends on
+other code that happens to have been run previously during one R session
+(for example, you loaded a needed package in one script so didn’t add
+<code>library(package)</code> to your next script. What happens when you
+try to run this code the next time? This often called a “hidden
+dependency” and can make your life very pretty miserable), and many
+other confusing behaviors.</p>
+<p>This workflow also makes it very difficult to share your work.
+Remember that R will default to looking in/saving to the current working
+directory. To control this behavior, most people are taught to use
+<code>setwd()</code>. The problem with this is that the path you set
+using <code>setwd()</code> is almost certainty specific to the computer
+your used to write that code. If you use a different computer later or
+send code to your adviser for help, they will not be able to run it
+without changing the working directory. If you move the files to a new
+place on your computer, all of your code will break. Got a new computer?
+Oops, none of your code will work anymore. If you are running multiple
+analyses in the same R session, you’ll also have to constantly change
+your working directory, which eventually will lead to confusion and
+problems rerunning code. Manually setting the working directory seems
+like a minor annoyance but if you have to do it constantly (for example,
+an instructor who has to grade a bunch of homework assignments), these
+minor annoyances add up to a big headache.</p>
+<p>The good news is, there’s an easy solution that will make your life
+(and mine) much easier.</p>
+</div>
+</div>
+<div id="rstudio-projects" class="section level1">
+<h1>RStudio Projects</h1>
+<p>Experienced programmers learned long ago the problems outlined above.
+To solve these problems, they typically use a self-contained directory
+(i.e., folder) for each project. Each directory contains all of the data
+and code needed to create research output for that project. Notably, the
+code should not reference <em>any</em> data or objects that are found in
+another directory. This helps ensure portability - you can move the
+entire project and still be able to rerun all code.</p>
+<p>RStudio makes is very easy to create Projects (for clarity, I will
+use “Project” when referring specifically to RStudio Projects and
+“project” to refer to generic research projects, i.e., a chapter of your
+dissertation). I highly recommend that you create a new Project for each
+project that are working on. There are several ways to do this but the
+easiest way is to:</p>
+<ol style="list-style-type: decimal">
+<li><p>Open RStudio</p></li>
+<li><p>Click on <code>File -&gt; New Project</code> then click
+<code>New Directory</code> (if you already have a folder associate with
+the project, you can click <code>Existing Directory</code> and then
+navigate to that folder)</p></li>
+<li><p>Click <code>New Project</code> then choose a name and a location
+for the Project (tip - don’t include spaces in the project name). For
+now we will not worry about creating a git repository or using
+packrat</p></li>
+<li><p>Click <code>Create Project</code> at the bottom. RStudio will
+create a new directory with the same name as your Project and a file
+called <code>project_name.Rproj</code> inside of that
+directory.</p></li>
+</ol>
+<p>A new RStudio window should open when you create the new project. In
+the future, when you want to work on this Project, just double click the
+<code>project_name.Rproj</code> file and it will open a new instance of
+RStudio.</p>
+<div id="whats-so-special-about-rstudio-projects" class="section level2">
+<h2>What’s so special about RStudio Projects?</h2>
+<p>Projects solve two of the big problems we discussed earlier. First,
+each project opens a fresh instance of R so the global environment of
+projects is self-contained. That means you can you have multiple
+projects open at once but each one will behave independently. This means
+no more <code>rm(list = ls())</code> because the only objects in your
+environment should be the ones associated with that project (this
+doesn’t totally resolve the problem of hidden dependencies but we’ll
+talk more about that below).</p>
+<p>Second, RStudio will automatically set the working directory to the
+root directory associate with the Project. This means that whatever
+folder the <code>.Rproj</code> file is in will automatically be set as
+the working directory when you open the project. You can check this by
+typing <code>getwd()</code> in the console of your new project. This
+setting avoids the need to use <code>setwd()</code> which makes your
+code much more portable. You can move or send the entire directory,
+double-click the <code>.Rproj</code> file and pick up right where you
+left off.</p>
+</div>
+<div id="a-note-on-saving-your-workspace-to-.rdata" class="section level2">
+<h2>A note on saving your workspace to <code>.RData</code></h2>
+<p>Another common mistake made by many novice (and not so novice) R
+users is to save your current workspace to <code>.RData</code> each time
+you quit R or RStudio. On the surface, this seems like a really
+convenient shortcut. The next time you open R, all of the objects you
+created previously are right there waiting for you to keep going!</p>
+<p>The problem is that, again, this creates hidden dependencies. The
+<code>.RData</code> file does not re-load packages that you were using
+in your previous session. It does not re-set options that you may have
+set in your previous session (<code>setwd()</code>,
+<code>stringsAsFactors = FALSE</code>). Some objects needed for, e.g.,
+making a figure may be loaded but others may not be. This means that
+even if you saved your workspace, you will still end up needing to
+re-run some chunks of code to get back to where you left off previously.
+Which chunks? Who knows. You probably think you’ll remember but you
+won’t.</p>
+<p>A better workflow is to start every R session with an empty
+workspace. This means you go into each session with the mindset that you
+will need to re-run all code from scratch every time. Although this
+seems like a pain, I promise it will make your life easier. It is a way
+of <em>ensuring</em> that at a minimum, you can reproduce all of your
+analyses anytime you need to.</p>
+<p>In RStudio, you can enforce this workflow by going to
+<code>RStudio -&gt; Tools -&gt; Global Options</code> and then in the
+<code>General</code> tab setting
+<code>Save workspace to .Rdata on exit</code> to <code>Never</code>.
+Highly recommended.</p>
+<p>What about re-running code that is very time consuming? Do you really
+need to re-run the code the cleans your raw data every time you need to
+reanalyze it? Of course not. You can always save those objects (along
+with the scripts you used to create them!) so that the next time you
+need them, they can just be re-read into R and you can do everything
+downstream of those steps without a problem. We’ll see example of this
+as we work through data cleaning and analysis scripts throughout the
+semester.</p>
+<p>One of the benefits of this workflow is that it treats your raw data
+and code as the only <em>real</em> objects in your workflow. These
+should be the only objects that if you lose them, you would be in big
+trouble (you’re computer is backed up, right?). Cleaned data that you
+created from your raw data isn’t real. You can just re-run the code and
+create those objects again (this is why we use R scripts instead of
+manipulating raw data in excel. See below for more details). Your
+workspace isn’t real - as we just discussed, it can (and should)
+disappear at any time. Results and figures are not real because you can
+re-create them from the code whenever you need to. Once you get into
+this mindset of treating raw data and code as the only real objects,
+your workflow will automatically become more organized and reproducible.
+(Manuscripts are also real so save them and back them up!)</p>
+</div>
+</div>
+<div id="organizing-your-project-directories" class="section level1">
+<h1>Organizing your project directories</h1>
+<p>As we already saw, the <code>.Rproj</code> file treats the directory
+that it is in as the working directory for that project. This means that
+you can read files from this location and write files to this location
+without changing any settings. For example, you can stick a filled
+called <code>data.csv</code> in this directory and the following code
+will work:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;data.csv&quot;</span>)</span></code></pre></div>
+<p>A natural instinct for those of us that are inclined to be less-than
+organized might be to put all of our files associated the project in
+this directory:</p>
+<pre><code>my_proj/
+|─── data.csv
+|─── script_that_does_everything.R
+|─── test_script_that_does_something_else.R
+|─── Figure1.png
+|─── manuscript_v1.doc
+|─── manuscript_v2.doc
+.
+.
+.
+|─── manuscript_final_v2-4.doc</code></pre>
+<p>There is nothing inherently wrong with this but for most project, you
+will end up with a very big directory that is hard to navigate when you
+need to find specific files. A better idea is to put files in intuitive
+subdirectories. You can pick whatever structure makes most sense to you,
+but I generally use something like:</p>
+<pre><code>my_proj/
+|─── data/
+      |─── data.csv
+      |─── more_data.csv
+|─── scripts/
+      |─── 01_prep.R
+      |─── 02_analysis.R
+|─── results/
+      |─── cool_result.rds
+      |─── extra_cool_result.rds
+|─── figures/
+      |─── fig1.png
+      |─── fig2.png</code></pre>
+<ul>
+<li><p><code>data/</code> contains my, you guessed it, data files (CSVs,
+shapefiles, etc). These data files are read into scripts for processing,
+analyzing, etc.</p></li>
+<li><p><code>scripts/</code> contains R scripts used to analyze data,
+make figures, whatever. These could be put in the subdirectory related
+to the function of the script if that makes more sense to you, or name
+the file such that it tells you its function. Any grouping/ordering is
+fine, as long as it makes sense to you and you know how to find it when
+you need it.</p></li>
+<li><p><code>results/</code> contains output from any scripts that may
+be used in other scripts for further analyses.</p></li>
+<li><p><code>figures/</code> contains figure files.</p></li>
+</ul>
+<p>I have seen more and less complicated folder structures, but the
+above has worked well for me. If there are more folders, it usually is
+for intermediate steps.</p>
+<div id="readingwriting-from-subdirectories" class="section level2">
+<h2>Reading/writing from subdirectories</h2>
+<p>Because RStudio treats the project root directory as the working
+directory, you could not do the following if, for example, your data is
+stored in a subdirectory:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;data.csv&quot;</span>)</span></code></pre></div>
+<p>Instead, you need to use relative paths. Remember that everything is
+relative to your working directory:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&quot;data-raw/data.csv&quot;</span>)</span></code></pre></div>
+<p>If you prefer, you can have as many layers of subdirectories as you
+want. The important thing is that as long as you move the entire project
+directory, these relative paths will still work. One note is that, in
+rare cases, the path with the final file name can get too long and throw
+an error (that will likely result in a long period of time before you
+figure out the issue).</p>
+</div>
+<div id="a-note-on-handling-raw-data" class="section level2">
+<h2>A note on handling raw data</h2>
+<p>Raw data is sacred. If you purposely or accidentally change your raw
+data, everything that comes downstream (analysis, results, reports) will
+also change. To maintain the integrity of your work, get in the habit of
+<strong>never</strong> making changes to your raw data files after you
+have entered the data.</p>
+<p>One of the great things about using scripts to manipulate your data
+is that you can leave your raw data untouched and have a paper trail of
+every change you made to prepare your data for analysis. That means
+adding new variables that are composites of the raw data (e.g.,
+<code>temp_c &lt;- (temp_f -32)*(5/9)</code>), removing outliers,
+joining different data sets together, whatever. <em>All of this is done
+in R after you’ve read in the raw data rather than in Excel!</em></p>
+<p>Just as important, you don’t save these new data objects over the raw
+data or even in the same directory. Those files go in
+<code>results/</code> folder or, perhaps an <code>output/</code> folder
+to hold intermediate objects. This means you can only read from the
+<code>data/</code> and you cannot write to it. R will, of course, allow
+you to write to <code>data/</code>, this is just a suggestion to help
+you maintain a firewall that will keep you raw data in it’s raw
+form.</p>
+</div>
+</div>
+<div id="additional-resources" class="section level1">
+<h1>Additional resources</h1>
+<p><a href="https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects">RStudio
+Project webpage</a></p>
+<p><a href="https://nicercode.github.io/blog/2013-04-05-projects/">Nice
+R Code</a></p>
+<p><a href="https://www.tidyverse.org/articles/2017/12/workflow-vs-script/">Jenny
+Bryan’s 🔥 take on <code>setwd()</code> and
+<code>rm(list=ls())</code></a></p>
+<p><a href="http://stat545.com/block002_hello-r-workspace-wd-project.html#workspace-and-working-directory">STAT545’s
+tutorial on workspaces and projects</a></p>
+<p><a href="https://swirlstats.com/">Swirl</a> is a way to learn R
+<em>within</em> R. Though based in the Tidyverse, it is a package that
+contains interactive R learning exercises. You will find exercises for
+learning the basics in R, data visualization, etc..</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

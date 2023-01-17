@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Course Preface</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Course Preface</h1>
+<h3 class="subtitle">FORHME</h3>
+<h4 class="date">updated on 2022-12-20</h4>
+
+
+
+<div id="course-preface" class="section level1">
+<h1>Course Preface</h1>
+<p>This course is intended to be a gentle introduction to applied
+Bayesian ecological modeling. The structure and material of the course
+are guided tutorials of hierarhical modeling to apply your existing
+statistical knowledge in a (potentially) new (to you) approach to making
+inference.</p>
+<p>We will start with offensively simple examples, advancing to complex
+models that are a result of years of thinking in ecological statistics.
+That said, we will proceed from linear, generalized linear, to more
+complex models in ecology. Along the way, we will use R for all
+analyses, so in a way it is a course on R programming.</p>
+<p>There has been much progression in software for Bayesian inference.
+One of the first widely available programs was <a href="winbugs%20http">WinBUGS</a>, which was revolutionary and quite
+ahead of its time. Since then, several stand-alone programs built upon
+WinBUGS by using dialects of the BUGS (Bayesian inference under Gibbs
+Sampling) language, with the most widely used being <a href="jags%20website">JAGS (Just Another Gibbs Sampler)</a>. JAGS was a
+huge improvement over BUGS in terms of stability and speed, but lacked a
+few built-in, advanced distributions (e.g., Multivariate CAR). Around
+the same time these two pieces of software were released, <a href="stan%20website">stan</a> was also being developed but used a
+completely different language than BUGS and JAGS. Most notably, BUGS is
+a “declarative language”, which means that there is no order in which
+the script is read - the ordering of items in the model is not important
+- whereas order matters for stan, and stan additionally required more
+variable definitions, less intuitive indexing, and a few other quirks
+that made the jump from BUGS feel significant, despite the speed gains
+one could get in stan.</p>
+<p>Each of the previous three pieces of software were standalone
+programs that were externally called by R, where you bundled everything,
+passed it to the software, did the MCMC sampling, and then received the
+model output back as an R object. Quietly building off of its
+predecessors, though, <a href="nimble%20website">r-nimble</a> was
+developing as a fully-within-R MCMC sampler bundled up as an R package.
+Not only did nimble run directly in R, it took 20 years of WinBUGS
+progress and offered incredible flexibility for building whatever model
+or distribution you can dream of. That is, among many features, nimble
+allows users to write their <em>own</em> distributions (more on this
+later in the semester). Hence, with the current progress
+<code>r-nimble</code> has made, this course will explicitly use the
+package for all Bayesian inference.</p>
+<p>Despite this being a course focused on Bayesian analysis, to help us
+ecologists understand more complex statistical models, we will directly
+compare <code>r-nimble</code> analyses to more traditional, base R
+modeling procedures such as <code>lm()</code>, <code>glm()</code>, and
+models available through external packages such as <code>unmarked</code>
+(e.g., <code>occu()</code>). There will be many cases in the beginning
+of the course where using a Bayesian inference will be significantly
+more work compared to running a, say, linear model in R. But, with time,
+the complexity of our models will exceed the capacity of base R and most
+of the packages avaiable. Ultimately, though, you will of course have
+the choice of a Bayesian or Classical mode for inference for your
+analyses in graduate school and your career - choose wisely ;)</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

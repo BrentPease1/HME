@@ -1,0 +1,27 @@
+---
+title: "Course Preface"
+subtitle: "FORHME"
+date: "updated on `r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Course Preface
+
+This course is intended to be a gentle introduction to applied Bayesian ecological modeling. The structure and material of the course are guided tutorials of hierarhical modeling to apply your existing statistical knowledge in a (potentially) new (to you) approach to making inference.  
+
+We will start with offensively simple examples, advancing to complex models that are a result of years of thinking in ecological statistics. That said, we will proceed from linear, generalized linear, to more complex models in ecology. Along the way, we will use R for all analyses, so in a way it is a course on R programming.  
+
+There has been much progression in software for Bayesian inference. One of the first widely available programs was [WinBUGS](winbugs http), which was revolutionary and quite ahead of its time. Since then, several stand-alone programs built upon WinBUGS by using dialects of the BUGS (Bayesian inference under Gibbs Sampling) language, with the most widely used being [JAGS (Just Another Gibbs Sampler)](jags website). JAGS was a huge improvement over BUGS in terms of stability and speed, but lacked a few built-in, advanced distributions (e.g., Multivariate CAR). Around the same time these two pieces of software were released, [stan](stan website) was also being developed but used a completely different language than BUGS and JAGS. Most notably, BUGS is a "declarative language", which means that there is no order in which the script is read - the ordering of items in the model is not important - whereas order matters for stan, and stan additionally required more variable definitions, less intuitive indexing, and a few other quirks that made the jump from BUGS feel significant, despite the speed gains one could get in stan.    
+
+
+Each of the previous three pieces of software were standalone programs that were externally called by R, where you bundled everything, passed it to the software, did the MCMC sampling, and then received the model output back as an R object. Quietly building off of its predecessors, though, [r-nimble](nimble website) was developing as a fully-within-R MCMC sampler bundled up as an R package. Not only did nimble run directly in R, it took 20 years of WinBUGS progress and offered incredible flexibility for building whatever model or distribution you can dream of. That is, among many features, nimble allows users to write their *own* distributions (more on this later in the semester). Hence, with the current progress `r-nimble` has made, this course will explicitly use the package for all Bayesian inference.  
+
+Despite this being a course focused on Bayesian analysis, to help us ecologists understand more complex statistical models, we will directly compare `r-nimble` analyses to more traditional, base R modeling procedures such as `lm()`, `glm()`, and models available through external packages such as `unmarked` (e.g., `occu()`). There will be many cases in the beginning of the course where using a Bayesian inference will be significantly more work compared to running a, say, linear model in R. But, with time, the complexity of our models will exceed the capacity of base R and most of the packages avaiable. Ultimately, though, you will of course have the choice of a Bayesian or Classical mode for inference for your analyses in graduate school and your career - choose wisely ;)
