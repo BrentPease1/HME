@@ -495,15 +495,10 @@ tree_model04 <- nimbleCode({
   # to set up the standard deviation, we need to make sure that the values are not negative.
   # If you rememeber, a gamma distribution has support from 0 -> Inf. This is a good choice.
   # we'll set the gamma on the precision term and then transform that to something more natural to us - the std. dev. 
-  pop.prec ~ dgamma(0.1, 0.1)
-  pop.var <- 1/pop.prec
-  pop.sd <- sqrt(pop.var)
+  prec ~ dgamma(0.1, 0.1)
+  pop.sd <- 1/sqrt(prec)
   
-  # NOTE: before nimble, had to do something like this:
-  # pop.sd ~ dunif(0, 100)
-  # pop.var <- pop.sd * pop.sd
-  # pop.prec <- 1/pop.var # pass pop.prec to dnorm below
-  
+
   # likelihood
   for(i in 1:nObs){
     tree[i] ~ dnorm(pop.mean, sd = pop.sd) 
@@ -513,7 +508,7 @@ tree_model04 <- nimbleCode({
 
 # inits
 inits <- list(pop.mean = rnorm(n = 1, 100, 10), # now rnorm
-              pop.sd = runif(n = 1))
+              prec = rgamma(n = 1, 0.1,0.1))
 
 # gather data and constants
 tree_data <- list(tree = tree_diameter)
@@ -524,8 +519,8 @@ keepers <- c('pop.mean', 'pop.sd')
 
 # MCMC settings
 nc = 3
-nb = 1000
-ni = nb + 2000
+nb = 5000
+ni = nb + 5000
 nt = 1
 
 # get samples
