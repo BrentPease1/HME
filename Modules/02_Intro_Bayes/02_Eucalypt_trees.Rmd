@@ -3,38 +3,54 @@ title: "Estimating a Population Mean"
 subtitle: "FORHME"
 date: "updated on `r Sys.Date()`"
 output: slidy_presentation
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
+
+```{=html}
 <style>
 slides > slide {
   overflow-x: auto !important;
   overflow-y: auto !important;
 }
 </style>
+```
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-##  Estimating a Population Mean: Eucalytpus trees
+## Estimating a Population Mean: Eucalytpus trees
+
 ```{r setup2, out.width='50%', fig.align='center', fig.cap='', warning = F, message = F}
 knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/tree.jpeg'))
 ```
 
 ## The Model of the Mean
 
-- To get more comfortable with `NIMBLE` in practice^, we will run an analysis of the simpliest of all models - the "model of the mean". 
-  - ^(including priors, likelihoods, MCMC settings, initial values, updates, convergence, etc.)
-- That is, we are going to estimate the mean of a normally distributed population based on a sample of observations of a population.
-
-  
-## The Model of the Mean
-- Researchers were interested in understanding mean diameter of a remnant patch of eucalyptus trees.
-- Important for nutrient dynamics, provision of habitat for animals, nectar, mitigation of temperature extremes,etc. 
-- Same researcher has studied this species in other remnant patches and documented an average diameter of 53 cm with a standard deviation of about 5cm. 
-  - Therefore, prior to collecting new data, there is a 95% chance of mean diameter between 43 - 63cm (mean + 1.96*sd)
-  - This is "prior knowledge"!
-  - how could we formulate this into a **prior distribution**?
+-   To get more comfortable with `NIMBLE` in practice\^, we will run an
+    analysis of the simpliest of all models - the "model of the mean".
+    -   \^(including priors, likelihoods, MCMC settings, initial values,
+        updates, convergence, etc.)
+-   That is, we are going to estimate the mean of a normally distributed
+    population based on a sample of observations of a population.
 
 ## The Model of the Mean
+
+-   Researchers were interested in understanding mean diameter of a
+    remnant patch of eucalyptus trees.
+-   Important for nutrient dynamics, provision of habitat for animals,
+    nectar, mitigation of temperature extremes,etc.
+-   Same researcher has studied this species in other remnant patches
+    and documented an average diameter of 53 cm with a standard
+    deviation of about 5cm.
+    -   Therefore, prior to collecting new data, there is a 95% chance
+        of mean diameter between 43 - 63cm (mean + 1.96\*sd)
+    -   This is "prior knowledge"!
+    -   how could we formulate this into a **prior distribution**?
+
+## The Model of the Mean
+
 ```{r data, echo = T}
 # here is our dataset
 
@@ -43,25 +59,65 @@ tree_diameter <- c(42,43,58,70,47,51,85,63,58,46)
 
 ## The Model of the Mean
 
-- Unlike the frog example, here we will have prior **distributions** that we are taking draws from. 
-  - We will explore "informative" and "uninformative" priors
-- We will also use multiple chains in our MCMC, which will fully illustrate initial values
-- This also means that we will be able to do full diagnostics on our model (to determine whether model has *converged*)
-- Finally, we will compare our Bayesian analysis to Frequentist inference in `R`.  
+-   Unlike the frog example, here we will have prior **distributions**
+    that we are taking draws from.
+    -   We will explore "informative" and "uninformative" priors
+-   We will also use multiple chains in our MCMC, which will fully
+    illustrate initial values
+-   This also means that we will be able to do full diagnostics on our
+    model (to determine whether model has *converged*)
+-   First though, we will compare our Bayesian analysis to Frequentist
+    inference in `R`.
 
 ## The Model of the Mean
 
-Steps to our analysis:    
+If I gave you a dataset and asked you for the mean and variation, what
+would you do?
 
-1. Load the package
-2. Write the model
-3. Bundle Data and Constants
-4. Bundle initial values
-5. Specify MCMC settings
-6. Do `NIIMBLE` (see frog slides)
+Probably something like `mean(data)` and maybe `var(data)` or
+`sd(data)`. Let's go ahead and do that:
+
+```{r mean/sd, echo = T}
+
+(data.frame(summary = c('mean', 'SD', 'SE'),
+           value = c(round(mean(tree_diameter),1), 
+                     round(sd(tree_diameter),1), 
+                     round(sd(tree_diameter)/sqrt(length(tree_diameter)),1))))
+
+```
+
+What I asked you to use a model to estimate the mean and the standard
+error of a dataset - how could you do this?    
+
+Although you might not think
+of it this way, assuming normally distributed random error, we could fit
+a linear model to our data and use the intercept *estimates* to describe the mean and standard error of our dataset. Remember, the intercept of a linear model is the mean (or expected) value of our variable when our predictor(s) = 0, and with no predictors then we just have the mean of the data.
+
+```{r tree lm, echo = T}
+
+summary(lm(tree_diameter ~ 1))
+```
 
 ## The Model of the Mean
+
+While finding these values is routine and simple, we'll over complicate it to illustrate a few key parts of Bayesian analysis. We'll now replicate this analysis within `nimble`.
+
+
+## The Model of the Mean
+
+Steps to our analysis:
+
+1.  Load the `nimble` package
+2.  Write the model and pass to `nimble` using `nimbleCode`
+3.  Bundle Data and Constants
+4.  Bundle initial values
+5.  Specify MCMC settings
+6.  Do `NIIMBLE` (see frog slides)
+
+## The Model of the Mean
+
 What does a model look like for this?
+
 ```{r model01, echo = T}
 library(nimble)
 
@@ -71,14 +127,14 @@ tree_model01 <- nimbleCode({
   # Note: historically had to specify "precision" in BUGS/JAGS
   # precision = 1/pop variance
   # pop variance = pop sd*pop sd
-  # In Nimble, we can just specify SD, but need to be explicit in distribution
+  # In Nimble, we can just specify SD, but need to be explicit in likelihood distribution
   
   # Priors
   pop.mean ~ dnorm(53, sd = 5) # need the "sd =" or have to provide precision (1/(5*5) = 0.04)
   
   # need to specify a prior for the standard deviation of this sample.
-  # we could approach it several ways, but here we'll use the SD of the actual observations (we'll check out other options in subsequent models)
-  pop.sd <- tree_sd # we'll pass this in as data
+  # we could approach it several ways, but first we'll use the SD of the actual observations (we'll check out other options in subsequent models)
+  pop.sd <- tree_sd # we'll pass `tree_sd` in as data
   
   # likelihood
   for(i in 1:nObs){
@@ -88,8 +144,8 @@ tree_model01 <- nimbleCode({
 })
 ```
 
-
 ## bundle data and constants for `NIMBLE`
+
 ```{r bundle, echo = T}
 tree_data <- list(tree = tree_diameter,
                   tree_sd = sd(tree_diameter))
@@ -98,41 +154,47 @@ tree_constants <- list(nObs = length(tree_diameter))
 
 ## bundle initial values for `NIMBLE`
 
-- We should provide initial values for every parameter, as possible*
-- Here, we just need to initialize `pop.mean` because taking pop.sd from actual data
-- Historically, BUGS was quite sensitive to initial values for complex models
-  - work around was to pass "very safe" initial values (standard normal or standard uniform)
-  - this is probably fine but can also give more range
-  - *IMPORTANT* initial value cannot be *way* outside the range of the prior distribution
-  - we stated `pop.mean` as a normal distribution with mean 53 and sd 5
-  - we don't want to pass `NIMBLE` an initial value of -200.
-  - so, can be beneficial to generate initial (starting) values using same distributions as priors - doesn't have to be as wide, but can be.
-- MCMC will "start" at these values.
-
+-   We should provide initial values for every parameter, as possible\*
+-   Here, we just need to initialize `pop.mean` because taking pop.sd
+    from actual data
+-   Historically, BUGS was quite sensitive to initial values for complex
+    models
+    -   work around was to pass "very safe" initial values (standard
+        normal or standard uniform)
+    -   this is probably fine but can also give more range
+    -   *IMPORTANT* initial value cannot be *way* outside the range of
+        the prior distribution
+    -   we stated `pop.mean` as a normal distribution with mean 53 and
+        sd 5
+    -   we don't want to pass `NIMBLE` an initial value of -200.
+    -   so, can be beneficial to generate initial (starting) values
+        using same distributions as priors - doesn't have to be as wide,
+        but can be.
+-   MCMC will "start" at these values.
 
 ```{r inits, echo = T}
 inits <- list(pop.mean = rnorm(n = 1, 53, 5))
 ```
 
-
 ## Set up MCMC settings
+
 ```{r mcmc, echo = T}
 
 # things we want `NIMBLE` to keep track of:
 # (very useful with complexity)
-keepers <- c('pop.mean', 'pop.sd')
+keepers <- c('pop.mean', 'pop.sd') # do we really need to monitor pop.sd?
 
 # MCMC settings
-nc = 3
-nb = 1000
-ni = nb + 2000
-nt = 1
+nc = 3 # why chains
+nb = 1000 # Why burn-ins
+ni = nb + 2000 # why inits
+nt = 1 # why thinning
 
 
 ```
 
-
 ## Package it all up and get samples
+
 ```{r samples01, echo = T}
 
 # one call
@@ -152,6 +214,7 @@ samples <- nimbleMCMC(
 ```
 
 ## summarize samples
+
 ```{r inspect, echo = T}
 # function to summarize samples
 getValues <- function(x){
@@ -208,18 +271,24 @@ getValues(pop.sd)
 library(mcmcplots)
 mcmcplot(samples$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model01")
 ```
+
 MCMCplots Results [here](output/tree_model01.html)
 
-
 ## Estimating mean for a normal distribution analytically
-- When the data and the prior have normal distributions, the posterior distribution is also a normally distributed random variable
-  - the mean and variance of the posterior depends on the mean and variance of the prior as well as the sample size of the current dataset, as well as the mean and variance of the data
-- Following Gelfand et al. 2004, the mean and variance of the posterior can be calculated analytically
-$$\mu_{post} = \frac{\mu_{prior}/\sigma^2_{prior} + \mu_{data} n/\sigma^2_{data}}{1/\sigma^2_{prior} + n/\sigma^2_{data}}$$
-and
-$$\sigma^2_{post} = \frac{\sigma^2_{prior}\sigma^2_{data}/n}{\sigma^2_{data}/n +\sigma^2_{prior}}$$
+
+-   When the data and the prior have normal distributions, the posterior
+    distribution is also a normally distributed random variable
+    -   the mean and variance of the posterior depends on the mean and
+        variance of the prior as well as the sample size of the current
+        dataset, as well as the mean and variance of the data
+-   Following Gelfand et al. 2004, the mean and variance of the
+    posterior can be calculated analytically
+    $$\mu_{post} = \frac{\mu_{prior}/\sigma^2_{prior} + \mu_{data} n/\sigma^2_{data}}{1/\sigma^2_{prior} + n/\sigma^2_{data}}$$
+    and
+    $$\sigma^2_{post} = \frac{\sigma^2_{prior}\sigma^2_{data}/n}{\sigma^2_{data}/n +\sigma^2_{prior}}$$
 
 Let's write some R functions and calculate these analytically
+
 ```{r analytically, echo = T}
 tree_diameter <- c(42,43,58,70,47,51,85,63,58,46)
 
@@ -249,11 +318,14 @@ print(paste("posterior 95% CI:",
               ))
 ```
 
-
 ## The Model of the Mean
-How much of an influence did our priors have on our estimate of the population mean?    
 
-What if we just bleed complete ignorance? Like, non-ecologist knowledge of tree diameters.
+How much of an influence did our priors have on our estimate of the
+population mean?
+
+What if we just bleed complete ignorance? Like, non-ecologist knowledge
+of tree diameters.
+
 ```{r uniform, echo = T}
 tree_model02 <- nimbleCode({
   
@@ -276,11 +348,17 @@ tree_model02 <- nimbleCode({
 ```
 
 ## Specify Initial Values
-Since we changed prior distributions, need to modify the starting values that we are passing to nimble. Also need to pass starting value for pop.sd since we are no longer passing it in as data.    
 
-We are pretty safe with almost any starting value because of the super flat priors we specified - would be hard to mess up.
+Since we changed prior distributions, need to modify the starting values
+that we are passing to nimble. Also need to pass starting value for
+pop.sd since we are no longer passing it in as data.
 
-Below I will just pull random numbers from identical distributions to the priors
+We are pretty safe with almost any starting value because of the super
+flat priors we specified - would be hard to mess up.
+
+Below I will just pull random numbers from identical distributions to
+the priors
+
 ```{r uniform inits, echo = T}
 inits <- list(pop.mean = runif(n = 1, min = 0, max = 200),
               pop.sd = runif(n = 1, min = 0, max = 100))
@@ -288,13 +366,16 @@ inits <- list(pop.mean = runif(n = 1, min = 0, max = 200),
 
 ## Bundle data and constants for `NIMBLE`
 
-Note that we are no longer passing tree_sd in as data - going to pull from priors.
+Note that we are no longer passing tree_sd in as data - going to pull
+from priors.
+
 ```{r echo = T}
 tree_data <- list(tree = tree_diameter)
 tree_constants <- list(nObs = length(tree_diameter))
 ```
 
 ## Set up MCMC settings
+
 ```{r echo = T}
 
 # things we want `NIMBLE` to keep track of:
@@ -310,8 +391,8 @@ nt = 1
 
 ```
 
-
 ## Package it all up and get samples
+
 ```{r echo = T}
 
 # one call
@@ -331,6 +412,7 @@ samples02 <- nimbleMCMC(
 ```
 
 ## What just happened?
+
 ```{r uniform output, echo = T}
 # First, "Summary" gives us some simple stuff
 samples02$summary$all.chains
@@ -372,15 +454,17 @@ getValues(pop.sd)
 library(mcmcplots)
 mcmcplot(samples02$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model02")
 ```
+
 MCMCplots Results [here](output/tree_model02.html)
 
 ## What just happened?
 
-This is a good look at typical output from a Bayesian model. A bit messy, each chain is slightly different. 
-- You should note increased uncertainty in our distributions. 
-- Good news is that even pleading ignorance, our 95% CI of the mean overlaps truth.
-- Just to show that the "flatness" of the prior shouldn't change things too much - flat is flat.
-
+This is a good look at typical output from a Bayesian model. A bit
+messy, each chain is slightly different. - You should note increased
+uncertainty in our distributions. - Good news is that even pleading
+ignorance, our 95% CI of the mean overlaps truth. - Just to show that
+the "flatness" of the prior shouldn't change things too much - flat is
+flat.
 
 ```{r uniform2, echo = T}
 
@@ -476,14 +560,20 @@ library(mcmcplots)
 mcmcplot(samples03$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model03")
 
 ```
+
 MCMCplots Results [here](output/tree_model03.html)
 
 ## What just happened?
 
-- Good news - flat is flat. We get very similar estimates regardless of the uncertainty we place on the unifrom distibutions
-- Model 02 -> 03 kept the same prior probability distributions but changed the parameters of the distribution.
-  - What if we change the actual probability distribution instead of just the parameters?
-  - For example, given that we are fitting a model assuming a normal distribution, it makese sense that a normally distributed prior probability would be a natural choice. Let's try that
+-   Good news - flat is flat. We get very similar estimates regardless
+    of the uncertainty we place on the unifrom distibutions
+-   Model 02 -\> 03 kept the same prior probability distributions but
+    changed the parameters of the distribution.
+    -   What if we change the actual probability distribution instead of
+        just the parameters?
+    -   For example, given that we are fitting a model assuming a normal
+        distribution, it makese sense that a normally distributed prior
+        probability would be a natural choice. Let's try that
 
 ```{r normal prior, echo = T}
 # model
@@ -556,32 +646,42 @@ library(mcmcplots)
 mcmcplot(samples04$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model04")
 
 ```
-MCMCplots Results [here](output/tree_model04.html)
 
+MCMCplots Results [here](output/tree_model04.html)
 
 ## What just happened?
 
-- Marginally more precise estimates
-- MUCH better traceplots (at least for pop.mean) - we want that thick, luscious grass
-- Prior probabilities are the big sticking point in Bayes - we'll read a few papers as we progress on the how the choice of prior distributions can affect our inference.
+-   Marginally more precise estimates
+-   MUCH better traceplots (at least for pop.mean) - we want that thick,
+    luscious grass
+-   Prior probabilities are the big sticking point in Bayes - we'll read
+    a few papers as we progress on the how the choice of prior
+    distributions can affect our inference.
 
 ## Your turn! Estimating a Population Mean - Male Peregrine Falcons
+
 ```{r falcon, out.width='50%', fig.align='center', fig.cap='', warning = F, message = F}
 knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/falcon.jpg'))
 ```
 
-White (1968) provides information of the weight of 12 adult male peregrines.     
+White (1968) provides information of the weight of 12 adult male
+peregrines.
 
-- White, C. M. (1968). Biosystematics of the North American peregrine falcons. The University of Utah.    
-  - "Twelve specimens of breeding adult males from the same populations varied from 550 to 647 grams with an average of 610.9"
-- You decide to collect another 12 samples of birds from the same region with several goals, the primary being to estimate a population mean from your sample.    
-- Below are the weights of 12 new individuals, in grams.     
-- Write a model to estimate the population mean of adult male peregrines. 
+-   White, C. M. (1968). Biosystematics of the North American peregrine
+    falcons. The University of Utah.
+    -   "Twelve specimens of breeding adult males from the same
+        populations varied from 550 to 647 grams with an average of
+        610.9"
+-   You decide to collect another 12 samples of birds from the same
+    region with several goals, the primary being to estimate a
+    population mean from your sample.\
+-   Below are the weights of 12 new individuals, in grams.\
+-   Write a model to estimate the population mean of adult male
+    peregrines.
 
 ```{r peregrines, echo = T}
 peregrines <- c(616, 653, 658, 608, 575, 621, 583, 602, 581, 604, 584, 604)
 ```
-
 
 ```{r scipt, echo = F}
 # knitr::purl(input = here::here('Modules/02_Intro_Bayes/02_Eucalypt_trees.Rmd'),
