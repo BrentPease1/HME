@@ -219,22 +219,31 @@ Conjugate distributions are useful because we can estimate the posterior distrib
 $$beta(2 + 1, 8 + 1) = beta(3, 9)$$
 
 ```{r warning = F}
-beta_prior <- data.frame(x = seq(0,1,0.01),
-                      y = dbeta(seq(0,1,0.01), 1, 1),
-                      term = 'prior')
-binom_lik <- data.frame(x = seq(0,1,length.out = 11),
-                        y = dbinom(0:10, size = 10, prob = 0.2),
-                        term = 'likelihood')
+par(mfrow = c(1,3))
+for(i in c(1,2,5)){
+  a <- i
+  b <- 1
+  N <- 10
+  successes <- 2
+  failures <- N - successes
+  theta = seq(0.005, 0.995, length = 101)
+  prior <- dbeta(x = theta, shape1 = a, shape2 = b)
+  likelihood <- dbeta(theta, shape1 = successes + 1, shape2 = N-successes + 1) #rule of succession
+  posterior <- dbeta(theta, a + successes, b + N - successes)
+  
+  # for plotting different densities on same figure
+  m.orig = apply( cbind(prior, likelihood, posterior), 2, max)
+  m = max(c(prior, likelihood, posterior))
+  
+  plot(theta, posterior, type = "l", ylab = "Density", 
+       lty = 2, lwd = 3, ylim = c(0, m), xlim = c(min(theta), max(theta)),col = 1,
+       main = paste0("Prior: beta(", a,", ", b, ")"))
+  lines(theta, likelihood, lty = 1, lwd = 3, col = 2)
+  lines(theta, prior, lty = 3, lwd = 3, col = 3)
+  legend("topleft",y=m, c("Prior", "Likelihood", "Posterior"), lty = c(3, 1, 2),
+         lwd = c(3, 3, 3), col = c(3, 2, 1))
+}
 
-beta_post <- data.frame(x = seq(0,1,0.001),
-                      y = dbeta(seq(0,1,0.001), 3, 9),
-                      term = 'posterior')
-beta_out <- rbind(beta_prior, binom_lik)
-beta_out <- rbind(beta_out, beta_post)
-ggplot() + 
-  geom_area(data = beta_out %>% filter(term == 'prior'), mapping = aes(x, y), fill = pal[3], color = pal[3]) + 
-    geom_path(data = beta_out %>% filter(term == 'likelihood'), mapping = aes(x, y), linesize = 1, col = pal[5]) +
-  geom_path(data = beta_out %>% filter(term == 'posterior'), mapping = aes(x, y), linesize = 1, col = pal[2])
 
 ```
 
@@ -251,7 +260,7 @@ $$logit(p) \sim Normal(0, \sigma^2)$$
 The logit scale transforms the probability to a real number:
 
 ```{r fig.width=4, fig.height=2.5}
-
+par(mfrow = c(1,1))
 logit_df <- data.frame(p = seq(0, 1, 0.01),
                       logit.p = qlogis(seq(0, 1, 0.01)))
 
