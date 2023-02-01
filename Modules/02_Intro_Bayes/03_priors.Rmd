@@ -74,7 +74,12 @@ For example, if $\theta$ is a probability, $Uniform(0,1)$ gives equal prior prob
 
 ```{r fig.height=5, fig.width=8}
 library(ggplot2)
-library(nationalparkcolors)
+if(!('nationalparkcolors' %in% rownames(installed.packages()))){
+  devtools::install_github("katiejolly/nationalparkcolors")
+  library(nationalparkcolors)
+} else{
+  library(nationalparkcolors)
+}
 library(dplyr)
 pal <- park_palette("RockyMountains")
 
@@ -143,7 +148,7 @@ ggplot(norm_df, aes(x, y)) + geom_area(fill = pal[3],
   labs(subtitle = "Normal(0, 100)")
 ```
 
-Hence the name, "flat, uninformative priors"
+Hence being commonly referred to as "flat, uninformative priors", although "default" is the preferred term.
 
 ## Non-informative priors
 
