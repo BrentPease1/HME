@@ -1,0 +1,728 @@
+---
+title: "Markov Chain Monte Carlo"
+subtitle: "FORHME"
+date: "updated on `r Sys.Date()`"
+output: slidy_presentation
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{=html}
+<style>
+slides > slide {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+</style>
+```
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## From the joint distribution to the posterior
+
+Remember from an earlier discussion that the posterior distribution of
+random variable $\theta$ conditional on data $y$ is defined by Bayes
+theorem:
+
+$$\underbrace{[\theta|y]}_{posterior\; distribution} = \frac{\overbrace{[\theta|y]}^{likelihood} \;\;\;\;\overbrace{[\theta]}^{prior}}{\underbrace{[y]}_{marginal\; distribution}}$$    
+
+
+So far we have spent some time discussing the likelihood $[\theta, y]$ and the prior $[\theta]$, but have largely ignored the denominator of Bayes theorem, the marginal distribution $[y]$   
+
+
+We said that it was a "scaling constant" and thanks to new approaches the term often cancels out in calculations, making the Bayes approach accessible to most.    
+
+
+We have left it alone for good reason. For all but the most simple problems (where we can use conjugate distributions or simple integrations to estimate the posterior distribution), estimating the marginal distribution is not analytically possible. For example, a model with four parameters would require solving a four-dimensional integral. 
+
+Fortunately, MCMC samplers were made widely available in a few software
+programs, relieving us of that marginal distribution in the
+denominators.
+
+## Markov Chain Monte Carlo
+
+In this course (and beyond), you will generally write out a model using
+a BUGS-style programming language that is recognized by software which
+then fits the model.
+
+We can do this without really knowing much of anything about *how* the
+software fits the model. 
+  - We did this with the frogs and the trees (hopefully you did this with the falcons, too)
+
+**However, it may perhaps not be the best idea to treat the software as a total blackbox.**       
+
+Having at least *some idea* what Nimble (or JAGS or BUGS) is
+doing to estimate the posterior distribution of parameters in your model
+will help you better understand if and when these programs are doing
+what you want.
+
+So, after this lecture, we'll let the blackbox do its thing, but for
+today, let's take a look under the hood.
+
+Remember, my goal is not the theory of Bayesian analysis, just the
+application, so this will be the limit of how deep we go into MCMCs.
+
+## From the joint distribution to the posterior
+
+Remember that the marginal distribution $[y]$ is what normalizes the
+joint distribution to ensure the posterior is a proper probability
+distribution (i.e., sums to 1)    
+  - Without the marginal distribution, parameters cannot be treated as random variables (and therefore we cannot conduct a true Bayes analysis)
+
+This issue of estimating the marginal distribution is what limited the
+application of Bayesian methods to practical problems from it's
+inception until the 1990's
+
+Progress was only made once statisticians started developing methods to
+learn about the posterior distribution by sampling *from the posterior
+distributions*    
+
+## Learning about the posterior by sampling from it   
+
+How can we draw samples from a distribution that we don't know?       
+
+Well, we *do* know something about the distribution of each parameter in our model, namely the joint distribution.   
+
+When we first calculated frog probabilities by hand, we initially said that the posterior distribution is proportional to the likelihood * prior:   
+
+$$[\theta|y] \propto [y|\theta][\theta]$$
+
+By taking many (1000s!) samples from the joint distribution, we can learn about its shape.    
+
+Perhaps you are thinking, "what does it even mean to 'take samples from a distribution'"?   
+
+Have you ever looked at the distribution of a dataset? Or, maybe you already have attempted to learn about a probability distribution? My preferred quick and dirty approach is to plot the histogram of the data.
+
+```{r echo = TRUE, fig.height=2, fig.width=4, warning = FALSE, comment=FALSE}
+library(ggplot2)
+library(nationalparkcolors)
+pal <- park_palette("RockyMountains")
+norm_df <- data.frame(samples = rnorm(5000))    # Generate samples from distribution
+
+ggplot(norm_df, aes(samples)) + geom_histogram(fill = pal[3]) + annotate("text", x = 0, y = 750, label = paste("Sample mean = ", round(mean(norm_df$samples),2))) + annotate("text", x = 0, y = 675, label = paste("Sample variance = ", round(sd(norm_df$samples),2))) 
+```
+  
+What about these $\Beta$ distributions we use?
+```{r echo = TRUE, fig.height=2, fig.width=4, warning = F}
+beta_df <- data.frame(samples = rbeta(n = 5000, shape1 = 2, shape2 = 5))
+
+ggplot(beta_df, aes(samples)) + geom_histogram(fill = pal[3]) 
+```
+  
+This is a simplified depiction of what we do in Bayesian Analyses, but hopefully it helps understand the concept of learning about a probability distirbution via sampling.
+
+## Learning about the posterior by sampling from it
+
+In modern Bayesian analysis, estimating posterior distributions is done using *Markov chain Monte Carlo* (MCMC) methods     
+
+MCMC is an algorithm that uses the joint distribution to to sample values of each random variable in proportion to their to their probability   
+
+Essentially, MCMC take the likelihood profile (*which is not normalized*), weights it by the prior (*which is then the joint distribution*), and then normalizes the joint distribution so it is a proper probability distribution     
+
+## Implementing a simple MCMC   
+
+To see the process, let's go through the steps of the MCMC applied to a simple model with a single parameter $p$, the probability term of a $Binomial$ (or $Bernoulli$) probability distribution.
+
+Say we tracked 20 individuals at Touch of Nature using GPS collars with an interest in annual survival.     
+  - We want to estimate $p$ (or $\phi$ using traditional survival lit notation) the probability of annual survival.   
+```{r setup2, out.width='50%', fig.align='center', fig.cap='', warning = F, message = F}
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/coyote.jpg'))
+```
+
+## Implementing a simple MCMC 
+
+Before implementing the MCMC algoritm, just as we did when using `nimble`, we need to specify the model for our data. That is, we need to choose appropriate likelihood and prior distributions.      
+
+In this example, we want to know the probability of an individual surviving (survived = 1, died = 0). A natural choice for this likelihood is the binomial (Bernoulli) distribution. 
+
+Let's simulate some data to reflect our situation. 
+```{r, echo = T}
+set.seed(277)
+y <- rbinom(n = 20,size = 1, prob = 0.7)  # note truth here is 0.7 - probability of detecting, observing, surviving, etc.
+
+```
+
+## Implementing a simple MCMC 
+
+Next, we need to define the **prior distribution**.     
+
+We could choose some default uninformative prior, but we have already learned that might not be the best choice.    
+
+Alternatively, we could be cutting-edge scientists and use priors based on results from related empirical studies.      
+
+  - A quick review of six papers across North America resulted in the following annual survival probability estimates of adult coyotes: 0.87, 0.72, 0.68, 0.7, 0.5, and 0.38.     
+  - So, it is probably not going to be less than ~25-30% and unlikely to be greater than 90%.
+  - A reasonable prior to represent this knowledge might be $beta(8,4)$
+    - lots of ways to get "optimal" prior distribution parameters, but a bit of exploring and eyeballing is fine for now. 
+    
+```{r}
+beta_df <- data.frame(p = seq(0, 1, 0.01),
+                      value = dbeta(seq(0, 1, 0.01), 8, 4),
+                      dist = rep(c("Prior"), 101))
+
+(p <- ggplot() + geom_path(data = beta_df, aes(x = p, y = value, group = dist, linetype = dist)) +
+  scale_y_continuous("Density") +
+  scale_linetype_manual(values = c("solid", "dotted")))
+```
+
+## Implementing a simple MCMC
+
+We'll also need to write a function that computes the posterior distribution.   
+
+  - We know this posterior needs to be a product of the likelihood and the prior
+  - We assigned the likelihood to the binomial distribution
+  - We assigned the prior a beta distribution
+  - We just need to bring those together using *probability density/mass functions*
+  
+## An aside: Probability Density/Mass Functions
+
+Although not frequently taught to ecologists, probability density/mass functions are essential for statistical modeling.    
+
+Remember that *random variables* are features of our system that vary throughout our area of interest and the possible values of the variables are governed by probability distributions.
+
+The precise manner in which possible values are characteritized is called the probability density function if the variable is continuous (body mass of falcons) and it is called the probability mass function if the variable is discrete (counts of falcons). 
+
+  - the PDF or PMF is a mathematical rule that governs possible outcomes of a random variable. 
+  - THE PD(M)Fs depend on one or more quantities, called *parameters*, that affect its form
+    - For example, the beta probability distribution above has two parameters - *a* and *b* - that govern its shape. 
+  - One the most common probability distributions is the binomial distribution and since it is discrete, it is has a PMF for counts $y$ with a natural upper limit $N$ (representing, for instance, the number of samples or replicates or even population size):
+  
+  $$f(y) = \frac{N!}{y!(N-y)!}p^y(1-p)^{(N-y)}$$
+  
+  where $y$ can take on integer values from $y = 0$ to $y = N$, and the single parameter $p$ is known as the "success probability". 
+  - This is the big deal: the binomial pmf tells us the probabilities of each possible value of y given some success probability parameter value. 
+  
+Consider this example:
+$y$ is "the number of times I observed at least one peregrine falcon" during $N = 5$ visits to a nesting cliff, and I know that the value of the parameter $p$ is 0.2.    
+
+The possible values of the random variable $y$ are {0,1,2,3,4,5}, as in "I observed falcons 0, 1, ..., 5 times". The possible values of $y$ occur with probabilities governed by the pmf in the above equation.    
+
+We could totally write a function for the binomial pmf and calculate these probabilities.     
+**OR**    
+We could use R's built-in probability distribution functions, like this:
+```{r echo = T, eval= F}
+
+dbinom(x = 0:5, size = 5, prob = 0.2)
+```
+```{r echo =F, eval= T}
+
+round(dbinom(x = 0:5, size = 5, prob = 0.2),2)
+```
+
+In words, the probability that I observe peregrines on 0 of the 5 visits is 0.33, the probability that I detect peregrines one time is 0.41, and so on.    
+
+We can also do stuff like, "what is the probability of observing peregrines on 2 or more visits?" by summing the associated probabilities of each event in the set of interest $Pr(y = \{2,3,4,5\}) = 0.2 + 0.05 + 0.01 + 0.00 = 0.26$
+
+## Implementing a simple MCMC
+
+Given this information, we can write a function to compute the posterior distribution as such:
+```{r echo = T, eval = F}
+posterior <- function(p, data){
+  prior <- dbeta(x = p, shape1 = 8, shape2 = 4)
+  like <- prod(dbinom(x = data, size=1, p=p)) # prod because more than one observation
+  return(like*prior)}
+```
+
+Make sure you understand exactly what this function is doing! 
+
+## MCMC: Basic Steps    
+
+Once we have our data, defined a likelihood function and a prior distribution, the basic steps of the MCM algorithm are:    
+
+1) Choose an initial value for $p$ to start our MCMC    
+2) Propose a new value for $p$ from a proposal distribution, referring to it as the "candidate value"
+3) Compute the posterior distribution using the candidate $p$ value
+4) Compute the posterior distribution using the current/initial/old $p$ value
+5) Compute the probability of accepting the candidate $p$ value using the posterior from the proposed $p$ and the previous $p^{k - 1}$
+6) Accept candidate value with probability estimated in the previous step, otherwise retain the previous value
+
+## MCMC: Basic Steps 
+
+Steps 2-6 are repeated many times (e.g., 10,000), resulting $K$ samples of $p$  
+
+- This collection of $p$ values is referred to as a *chain*
+- Steps 2 and 3 ensure that the values of $p$ is our chain are sampled in proportion to their probability in the posterior distribution $[p|y]$  
+
+- By collecting a large number of samples of $p$ is proportion to their probability in $[p|y]$, we can define the posterior distribution  
+
+## MCMC: Basic Steps
+
+### Step 1: Choose an initial value
+
+The first step in our code is to choose an initial value for the chain.     
+
+As mentioned previously, the exact value typically isn't too important but it should be consistent with the probability distribution that defines the parameter.      
+
+In our case, $p$ is a probability so it should be bounded between 0 and 1.    
+We can just use `runif(1)` to give us a random number between 0 and 1 that occurs with equal probability across that support.   
+  
+  - Using a random number will give us a different values each time we run the algorithm, which is a good way to check whether the posterior estimate is sensitive to initial values.
+  - If the posterior is sensitive to initial values, it could indicate a problem or just that we need to run the chain longer. 
+  
+```{r echo = T, eval = F}
+# Simulate data
+set.seed(277)
+y <- rbinom(20,1,0.7)  # note truth here is 0.7 - probability of detecting, observing, surviving, etc. "give me 20 values of either 0 or 1, with 1 occurring with probability 0.7 and 0 occurring with probability 1-0.7 = 0.3.
+
+```
+
+## MCMC: Basic Steps
+
+### Step 2: Propose a new value
+
+All MCMC algorithms develop chains by proposing a new value of $p$ (denoted $p^*$) from some *proposal distribution*      
+
+As we'll show, there are different ways to formulate proposal distributions but in most applications, the proposal $p^*$ is *dependent* on the previous value $p^{k-1}$  
+
+(Remember, Markov Chains are a series of numbers in which each is conditional on the previous value. That is: $[p*|p^{k-1}]$)   
+
+A common approach is using a normal proposal distribution:    
+$$p^* \sim Normal(p^{k-1}, \sigma^2)$$
+
+Using a normal proposal distribution, $p^*$ can be any real number but will, on average, tend to be close to $p^{k-1}$  
+
+How close $p^*$ is to $p^{k-1}$ is determined by $\sigma^2$, which is referred to as the *tuning parameter*  
+
+- $\sigma^2$ determines the frequency that proposals are accepted  
+
+- Larger values will result in more frequent rejections, smaller values will result in more acceptances. 
+
+## MCMC: Basic Steps
+
+### Step 2: Propose a new value
+
+What is the issue with using the common normal proposal distribution in our example?
+
+## MCMC: Basic Steps
+
+### Step 2: Propose a new value
+
+Correct, p is a probability bounded between 0 and 1 and, depending on the *tuning parameter*, we could end up with a proposed value that is beyond the bounds of term.    
+
+Solution?   
+
+Throw out values that are beyond our support.   
+
+OR    
+
+We could instead use a beta distribution and use moment matching to define the parameters of $\alpha$ and $\beta$ in terms of $p^{k-1}$ and $\sigma^2$. It is a little ugly:   
+
+$$p^* \sim beta\Bigg(p^{k-1}\bigg(\frac{p^{k-1}(1-p^{k-1})}{\sigma^2}-1\bigg), (1-p^{k-1})\bigg(\frac{p^{k-1}(1-p^{k-1})}{\sigma^2}-1\bigg)\Bigg)$$
+
+Less ugly in `R` code:
+
+```{r echo = T, eval = F}
+proposal <- function(p, sigma2){
+  alpha <- p * ((p * (1 - p) / sigma2) - 1)
+  beta <- (1 - p) * ((p * (1 - p) / sigma2) - 1)
+  
+  proposal <- rbeta(n = 1, shape1 = alpha, shape2 = beta)
+  return(proposal)
+}
+```
+
+We'll stick with the normal proposal distribution for now but know that we could approach it differently.   
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+Once we have a proposal $p^*$, we have to decide whether to accept this as our new value of $p^k$  
+
+- If we accept $p^*$, $p^{k} = p^{*{k-1}}$  
+
+- If we reject it, $p^{k} = p^{k-1}$  
+
+We accomplish this using *Metropolis updates*, a very clever way of ensuring that our samples of $p$ occur in proportion to their probability in the posterior distribution.
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+
+To see how Metropolis updating works, remember that the support for the proposal conditional on the data is:
+
+$$[p^*|y] = \frac{[y|p^*][p^*]}{[y]}$$
+
+The support for the current value is:
+
+$$[p^{k-1}|y] = \frac{[y|p^{k-1}][p^{k-1}]}{[y]}$$
+
+These, of course, are the posterior probabilities of $p^*$ and $p^{k-1}$  
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+At first, this doesn't seem to have gotten us very far  
+
+- We started out saying that the hard part was finding $[y]$ and here it is again  
+
+But because $[y]$ does not depend on $[p]$, it cancels out if we take the ratio of the two probabilities:
+
+$$R = \frac{[y|p^*][p^*]}{[y|p^{k-1}][p^{k-1}]}$$
+
+$R$ tells us the *relative* probability of the proposal (relative to the current value), i.e., which value is more probable
+
+In Metropolis updating we accept $p^*$ whenever $R \geq 1$, i.e. when $p^*$ is more probable than $p^{k-1}$ 
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+At first, you might assume that we reject  $p^*$ when $R \lt 1$  
+
+- However, if we did this, we would rarely sample values of $p$ in the tails$^1$ 
+
+- Instead of automatically rejecting  $p^*$ when $R \lt 1$, we treat $R$ as a probability and we keep $p^*$ with probability $R$  
+
+
+$^1$ Values in the tails of the posterior are by definition not very probable but we still want to occasionally sample these values so that we can accurately define the full posterior  
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+Before we can use our functions to create the MCMC chain, let's specify some settings:
+```{r, echo = T, eval = F}
+# MCMC set-up and 'tuning' parameter
+# tuning perturbs current value of parameter by some random noise
+n.iters <- 10000
+tune  <- 0.05 # you can try different tuning values to see its impact on acceptance rate
+
+```
+
+## MCMC: basic steps
+
+### Step 3-6: Estimate acceptance probability
+
+Next, we run the sampler:
+```{r, echo = T, eval = F}
+keep_p <- rep(0,n.iters) #holder for output
+
+for(i in 1:n.iters){
+  
+  # Draw a candidate and compute acceptance ratio**:
+
+  can <- rnorm(1,p,tune)
+  if(can < 0 | can > 1){next} 
+  p1  <- posterior(can,y) 
+  p2  <- posterior(p,y)
+  R   <- p1/p2
+  R   <- ifelse(R>1,1,R)
+  
+  # Make a decision: 
+  keep <- rbinom(1,1,R)==1
+  # keep <- runif(1) < R # alternative approach
+  if(keep){
+    p <- can  #here is where we overwrite our initial p with our candidate value if it passes test
+  }
+  keep_p[i] <- p #store all the keepers - this is our *chain*!
+  
+}
+
+```
+
+```{r, echo = F, eval = T}
+# Code for writing a Metropolis sampler for a 1D posterior
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+# Function to compute the posterior distribution:
+# Posterior is proportional to likelihood * prior
+# Likelihood: Y[i] ~ Bern(p)            # binomial with a single trial
+# Prior:      p ~ Beta(a, b)            # Beta(1,1) ~~ uniform(0,1)
+posterior <- function(p, data){
+  prior <- dbeta(x = p, shape1 = 8, shape2 = 4)
+  like <- prod(dbinom(data, size=1, p=p)) # prod because more than one observation
+  return(like*prior)}
+
+sampleStats <- function(x){
+  mean <- mean(x)
+  sd <- sd(x)
+  quants <- quantile(x, probs = c(0.025, 0.5, 0.975))
+  out <- matrix(data = c(mean, sd, quants), nrow = 1, dimnames = list(1,c('mean',
+                                                                          'sd',
+                                                                          'lower95',
+                                                                          'median',
+                                                                          'upper95')))
+  return(out)
+}
+
+
+# Simulate data
+set.seed(277)
+y <- rbinom(20,1,0.7)  # note truth here is 0.7 - probability of detecting, observing, surviving, etc.
+
+
+# Compute the posterior on a grid for plotting below
+p_grid <- seq(0,1,length=100)
+dense <- rep(0,100)
+for(i in 1:100){
+  dense[i] <- posterior(p = p_grid[i], data = y)
+}
+
+
+# MCMC set-up and 'tuning' parameter
+# tuning perturbs current value of parameter by some random noise
+n.iters <- 10000
+tune  <- 0.05 # you can try different tuning values to see its impact on acceptance rate
+
+
+#initial (starting) value of mcmc
+p <- runif(1)
+keep_p <- rep(0,n.iters)
+
+
+# **If the product of likelihood and prior is greater for the 
+# proposed value of p than for the initial/current value,
+# the proposed value is accepted, though if the initial/current value is smaller than
+# the proposed value, initial/current may still be accepted, but is done so only with a probability equal to the ratio R.
+
+# Begin the MCMC loop
+for(i in 1:n.iters){
+  
+  # Draw a candidate and compute acceptance ratio**:
+
+  can <- rnorm(1,p,tune)
+  if(can < 0 | can > 1){next} 
+  p1  <- posterior(can,y) 
+  p2  <- posterior(p,y)
+  R   <- p1/p2
+  R   <- ifelse(R>1,1,R)
+
+  
+  # Make a decision: 
+  keep <- rbinom(1,1,R)==1
+  # keep <- runif(1) < R # alternative approach
+  if(keep){
+    p <- can  #here is where we overwrite our initial p with our candidate value if it passes test
+  }
+  keep_p[i] <- p
+  
+}
+```
+
+
+## MCMC: basic steps
+
+### Summarizing and visualizing the chain
+```{r, echo = T, eval=T}
+
+sampleStats <- function(x){
+  mean <- mean(x)
+  sd <- sd(x)
+  quants <- quantile(x, probs = c(0.025, 0.5, 0.975))
+  out <- matrix(data = c(mean, sd, quants), nrow = 1, dimnames = list(1,c('mean',
+                                                                          'sd',
+                                                                          'lower95',
+                                                                          'median',
+                                                                          'upper95')))
+  return(out)
+}
+
+# summarize MCMC
+sampleStats(keep_p)
+
+# plot posterior density
+par(ask=F,mfrow=c(1,2))
+plot(density(keep_p), frame = FALSE, col = pal[3],main = "", lwd = 2,
+     xlab=expression(p),ylab=expression(paste("f(",p,"|Y)")))
+
+# plot MCMC chain trace plot
+
+post_grid <- seq(0,1,length=length(keep_p))
+plot(post_grid,keep_p,type="l",lwd=2,
+     xlab=expression(p),ylab=expression(paste("f(",p,"|Y)")))
+
+```
+
+The mean of our posterior is very close to truth - this is a good sign that our Metropolis sampler did what we wanted. We also have our 95% Credible interval, so we can make a statement like, "there is a 95% chance that $p$ is between `r round(quantile(keep_p, probs = 0.025),2)` and `r round(quantile(keep_p, probs = 0.975),2)`.
+
+In practice, we usually run several chains for each parameter. Several chains allows us to diagnose whether we have converged on the posterior and if the model is well-behaved.
+
+```{r, echo = F}
+chains <- data.frame(iteration = rep(seq(1:n.iters), 3),
+                     chain = rep(c("1", "2", "3"), each = n.iters),
+                     p = sample(keep_p[10:n.iters], n.iters * 3, replace = TRUE))
+
+ggplot(chains, aes(x = iteration, y = p, color = chain)) + geom_path() +
+  scale_color_manual(values = pal[c(2,4,5)]) +
+  ggthemes::theme_clean()
+```
+
+
+
+## Evaluating Markov chains
+
+MCMC is an enormously useful algorithm for finding the posterior distributions of random variables    
+
+
+But it does not always work :(      
+
+For any model, it is **critical** to evaluate the chains to determine whether you can trust inferences from the model
+
+## Evaluating Markov chains
+
+The most important characteristic of MCMC chains is **convergence**     
+
+- The first few samples are probably not draws from the posterior distribution
+- It can take hundreds or even thousands of iterations to move from the initial values to the posterior
+- When the sampler reachers the posterior, this is called *convergence*.      
+    - Convergence occurs when the accumulated samples accurately characterize the posterior distribution of a parameter   
+- Once a chain has converged, adding more samples will not meaningfully change the shape or moments of the posterior distribution
+- At this point, a chain is *stationary* because more samples will not cause it to "move" 
+- samples before convergence are usually discarded as **burn-in**
+
+```{r fig.height=4, fig.width=8, echo = F}
+poster <- data.frame(iteration = 1:n.iters, p = keep_p)
+
+a1 <- ggplot(poster[1:100,], aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+
+a2 <- ggplot(poster[1:100,], aes(x = p)) + geom_density() +
+  scale_x_continuous(expression(p))
+
+b1 <- ggplot(poster[1:500,], aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+
+b2 <- ggplot(poster[1:500,], aes(x = p)) + geom_density() +
+  scale_x_continuous(expression(p))
+
+c1 <- ggplot(poster[1:5000,], aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+
+c2 <- ggplot(poster[1:5000,], aes(x = p)) + geom_density() +
+  scale_x_continuous(expression(p))
+
+d1 <- ggplot(poster, aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+
+d2 <- ggplot(poster, aes(x = p)) + geom_density() +
+  scale_x_continuous(expression(p))
+
+cowplot::plot_grid(a1, b1, c1, d1, a2, b2, c2, d2, 
+                   labels = c("1A)", "2A)","3A)", "4A)",
+                              "1B)", "2B)", "3B)", "4B)"),
+                   nrow = 2)
+
+```
+
+## Evaluating convergence
+
+There are two main ways to assess convergence: 1) visually and 2) using formal diagnostic tests     
+
+1) Visual evaluation is done using trace plots 
+
+- Chains that have not converged will "wander" 
+
+- Chains that have converged will exhibit good **mixing**   
+
+- In trace plots, well-mixing chains will have a "grassy lawn" look
+
+```{r fig.height=3, fig.width=5}
+ggplot(chains, aes(x = iteration, y = p, color = chain)) + geom_path() +
+  scale_color_manual(values = pal[c(2,4,5)]) +
+  ggthemes::theme_clean()
+```
+
+## Evaluating convergence
+
+```{r , out.width='50%', fig.align='center', fig.cap='', warning = F, message = F}
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/converge1.jpg'))
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/converge2.jpg'))
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/converge3.jpg'))
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/converge4.jpg'))
+```
+
+## Evaluating convergence
+
+The other approach is to use formal diagnostic tests.   
+
+This approach is more efficient and objective than visual inspection.   
+
+The `CODA` package in `R` has dozens of diagnostics - most give a measure of convergence for each parameter.
+
+We can ask two questions:
+
+1) Did my chains converge?
+2) Did I run the sampler long enough after convergence?   
+
+## Evaluating convergence
+
+For Q1, we usually use the *Gelman-Rubin* statistic, denoted $\hat{r}$    
+
+- If we run multiple chains, we hope that all chains give same result   
+- The Gelman-Rubin statistic measures agreement among chains, basically using an ANOVA test of whether the chains have the same mean.
+- when chains have not converged, variance among chains $>$ variance within chains    
+- when chains have converged, variance among chains $=$ variance within chains    
+- $\hat{r}$ is essentially the ratio of among:within chain variance so $\hat{r} \approx 1$ indicates perfect convergence    
+- values much greater than 1 indicate lack of convergence (usually $\hat{r} \leq 1.1$ is used as a threshold)   
+
+## Evaluating convergence
+
+For Q2, we usually check the *Effective Sample Size* and/or standard errors for the posterior mean estimate.    
+
+- Highly correlated samples have less information than independent samples
+- The Effective Sample Size is a measure of the number of indepedent samples; ESS should be at least a few thousand for all parameters.   
+
+## Improving convergence 
+
+Two issues can cause chains to not converge:  
+
+1) Too few samples  
+2) Lack of identifiability  
+
+## Improving convergence
+
+If too few samples have been accumulated, the chain will not accurately represent the full posterior:
+
+```{r fig.height=3, fig.width=5}
+ggplot(poster[1:100,], aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+```
+
+**Solution** - continuing sampling! 
+
+```{r fig.height=3, fig.width=5}
+ggplot(poster, aes(x = iteration, y = p)) + 
+  geom_path(color = pal[3]) +
+  scale_y_continuous(expression(p))
+```
+
+## Improving convergence 
+
+Solving lack of identifiability is harder  
+
+- reduce model complexity  
+
+- collect more data  
+
+- more informative priors 
+
+- transformations can sometimes help    
+
+*Determining* convergence is not that difficult, *improving* convergence is challenging
+
+## Your turn! (For real)
+
+New Scenario: Instead of collaring 20 individuals at a single site, say we have 5 sampling locations where we collar 20 individuals at each of those sites (good luck ;) )
+
+Additionally, you're dealing with a different species that has a mean annual survival probability of 0.4    
+
+Though you don't know a ton about the species, let's still assume that annual survival is probably not less than ~20% and probably not more than ~50%.    
+
+Modify the code in `04_mcmc.R` to reflect this.     
+
+Hint: You'll need to change 2-3 values in the code.   
+
+When you have solved this, choose an approach to evaluating convergence of your sampler.    
+
+Bonus Challenge: If this is too easy for you, change the normal proposal distribution to the beta proposal distribution that we saw in the slides.
