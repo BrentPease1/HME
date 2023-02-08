@@ -259,7 +259,7 @@ coda::traceplot(samples_mcmc[, 1:2])
 # rule of thumb is anything <1.1
 coda::gelman.diag(samples_mcmc[,1]) # just look at pop.mean = all good
 
-# extract mean and SD lambda of each grid cell
+# extract mean and SD
 
 samplesdf <- do.call(rbind, samples_mcmc)
 pop.mean <- samplesdf[, 1]
@@ -323,7 +323,7 @@ print(paste("posterior 95% CI:",
 How much of an influence did our priors have on our estimate of the
 population mean?
 
-What if we just bleed complete ignorance? Like, non-ecologist knowledge
+What if we just plead complete ignorance? Like, non-ecologist knowledge
 of tree diameters.
 
 ```{r uniform, echo = T}
@@ -416,15 +416,6 @@ samples02 <- nimbleMCMC(
 ```{r uniform output, echo = T}
 # First, "Summary" gives us some simple stuff
 samples02$summary$all.chains
-
-# this is important - let's talk through it.
-# prior knowledge said 43-63
-# we updated prior knowledge with new knowledge and reduced 95% CI. 
-# pop sd is exactly the same value as we passed it - does not get sampled - just a constant
-
-
-# (HOW DOES 95% CRED INT differ from 95% CONF INT?)
-# but also,
 
 # .......................................................................
 # INSPECT RESULTS
