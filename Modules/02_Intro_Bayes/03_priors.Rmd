@@ -377,14 +377,13 @@ ggplot(df, aes(x = p, y = Density, color = parameter)) + geom_path() +
 
 We allow our data to *update* this hypothesis  
 
---
+
 - Strong priors will require larger sample sizes and more informative data to change our beliefs about the system  
 
---
+
 - Less informative priors will require less data  
 
 
---
 This is how it should be - if we're really confident in our knowledge of the system, we require very strong evidence to convince us otherwise  
 
 
@@ -417,7 +416,7 @@ But there are also a number of practical advantages:
 
 2) Stabilizing computational algorithms  
 
-- As models get more complex, the ratio of parameters to data becomes grows  
+- As models get more complex, the ratio of parameters to data grows  
 
 - As a result, we often end up with pathological problems related to parameter *identifiability***^** 
 
@@ -436,13 +435,12 @@ But there are also a number of practical advantages:
 
 **Example**  
 
-If $y \sim Binomial(N, p)$ and the only data we have in $y$ (we don't know $N$), we cannot estimate $N$ and $p$ no matter how much data we have**^** 
+If $y \sim Binomial(N, p)$ and the only data we have is $y$ (we don't know $N$), we cannot estimate $N$ and $p$ no matter how much data we have**^** 
 
-Including information about either $N$ or $p$ via an informative prior can help estimate the other other parameter**#** 
+Including information about either $N$ or $p$ via an informative prior can help estimate the other other parameter
 
 **^** there are essentially unlimited combinations of $N$ and $p$ that are consistent with our data  
 
-**#**we'll see this issue come up again when we discuss estimating abundance from count data 
 
 ## Advice on priors
 
@@ -481,7 +479,7 @@ Including information about either $N$ or $p$ via an informative prior can help 
 
 4) Dive into the literature  
 
-> Find published estimates and use moment matching and other methods to convert published estimates into prior distributions  
+> Find published estimates and convert into prior distributions  
 
 
 ## Advice on priors
