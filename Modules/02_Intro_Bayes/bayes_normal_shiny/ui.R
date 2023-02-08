@@ -21,7 +21,7 @@
     sliderInput("sigma", 
                 "Population sd (sigma)", 
                 min = 0.01,
-                max = 10, 
+                max = 25, 
                 value = 5,
                 step = .01),
     sliderInput("theta", 
