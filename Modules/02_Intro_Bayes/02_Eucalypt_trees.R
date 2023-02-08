@@ -1,11 +1,32 @@
+## ----setup, include=FALSE----------------------------------------------------------------------------------------------
+knitr::opts_chunk$set(echo = FALSE)
 
-## ----data, echo = T-------------------------------------------------------------------------
+
+## ----setup2, out.width='50%', fig.align='center', fig.cap='', warning = F, message = F---------------------------------
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/tree.jpeg'))
+
+
+## ----data, echo = T----------------------------------------------------------------------------------------------------
 # here is our dataset
 
 tree_diameter <- c(42,43,58,70,47,51,85,63,58,46)
 
 
-## ----model01, echo = T----------------------------------------------------------------------
+## ----mean/sd, echo = T-------------------------------------------------------------------------------------------------
+
+(data.frame(summary = c('mean', 'SD', 'SE'),
+           value = c(round(mean(tree_diameter),1), 
+                     round(sd(tree_diameter),1), 
+                     round(sd(tree_diameter)/sqrt(length(tree_diameter)),1))))
+
+
+
+## ----tree lm, echo = T-------------------------------------------------------------------------------------------------
+
+summary(lm(tree_diameter ~ 1))
+
+
+## ----model01, echo = T-------------------------------------------------------------------------------------------------
 library(nimble)
 
 tree_model01 <- nimbleCode({
@@ -14,14 +35,14 @@ tree_model01 <- nimbleCode({
   # Note: historically had to specify "precision" in BUGS/JAGS
   # precision = 1/pop variance
   # pop variance = pop sd*pop sd
-  # In Nimble, we can just specify SD, but need to be explicit in distribution
+  # In Nimble, we can just specify SD, but need to be explicit in likelihood distribution
   
   # Priors
   pop.mean ~ dnorm(53, sd = 5) # need the "sd =" or have to provide precision (1/(5*5) = 0.04)
   
   # need to specify a prior for the standard deviation of this sample.
-  # we could approach it several ways, but here we'll use the SD of the actual observations (we'll check out other options in subsequent models)
-  pop.sd <- tree_sd # we'll pass this in as data
+  # we could approach it several ways, but first we'll use the SD of the actual observations (we'll check out other options in subsequent models)
+  pop.sd <- tree_sd # we'll pass `tree_sd` in as data
   
   # likelihood
   for(i in 1:nObs){
@@ -31,32 +52,32 @@ tree_model01 <- nimbleCode({
 })
 
 
-## ----bundle, echo = T-----------------------------------------------------------------------
+## ----bundle, echo = T--------------------------------------------------------------------------------------------------
 tree_data <- list(tree = tree_diameter,
                   tree_sd = sd(tree_diameter))
 tree_constants <- list(nObs = length(tree_diameter))
 
 
-## ----inits, echo = T------------------------------------------------------------------------
+## ----inits, echo = T---------------------------------------------------------------------------------------------------
 inits <- list(pop.mean = rnorm(n = 1, 53, 5))
 
 
-## ----mcmc, echo = T-------------------------------------------------------------------------
+## ----mcmc, echo = T----------------------------------------------------------------------------------------------------
 
 # things we want `NIMBLE` to keep track of:
 # (very useful with complexity)
-keepers <- c('pop.mean', 'pop.sd')
+keepers <- c('pop.mean', 'pop.sd') # do we really need to monitor pop.sd?
 
 # MCMC settings
-nc = 3
-nb = 1000
-ni = nb + 2000
-nt = 1
+nc = 3 # why chains
+nb = 1000 # Why burn-ins
+ni = nb + 2000 # why inits
+nt = 1 # why thinning
 
 
 
 
-## ----samples01, echo = T--------------------------------------------------------------------
+## ----samples01, echo = T-----------------------------------------------------------------------------------------------
 
 # one call
 samples <- nimbleMCMC(
@@ -74,7 +95,7 @@ samples <- nimbleMCMC(
 
 
 
-## ----inspect, echo = T----------------------------------------------------------------------
+## ----inspect, echo = T-------------------------------------------------------------------------------------------------
 # function to summarize samples
 getValues <- function(x){
   mean <- mean(x)
@@ -118,7 +139,7 @@ coda::traceplot(samples_mcmc[, 1:2])
 # rule of thumb is anything <1.1
 coda::gelman.diag(samples_mcmc[,1]) # just look at pop.mean = all good
 
-# extract mean and SD lambda of each grid cell
+# extract mean and SD
 
 samplesdf <- do.call(rbind, samples_mcmc)
 pop.mean <- samplesdf[, 1]
@@ -131,7 +152,7 @@ library(mcmcplots)
 mcmcplot(samples$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model01")
 
 
-## ----analytically, echo = T-----------------------------------------------------------------
+## ----analytically, echo = T--------------------------------------------------------------------------------------------
 tree_diameter <- c(42,43,58,70,47,51,85,63,58,46)
 
 posterior_mean <- function(prior_mean, prior_var, data_mean, data_var, n){
@@ -160,7 +181,7 @@ print(paste("posterior 95% CI:",
               ))
 
 
-## ----uniform, echo = T----------------------------------------------------------------------
+## ----uniform, echo = T-------------------------------------------------------------------------------------------------
 tree_model02 <- nimbleCode({
   
   ## Priors ##
@@ -181,17 +202,17 @@ tree_model02 <- nimbleCode({
 })
 
 
-## ----uniform inits, echo = T----------------------------------------------------------------
+## ----uniform inits, echo = T-------------------------------------------------------------------------------------------
 inits <- list(pop.mean = runif(n = 1, min = 0, max = 200),
               pop.sd = runif(n = 1, min = 0, max = 100))
 
 
-## ----echo = T-------------------------------------------------------------------------------
+## ----echo = T----------------------------------------------------------------------------------------------------------
 tree_data <- list(tree = tree_diameter)
 tree_constants <- list(nObs = length(tree_diameter))
 
 
-## ----echo = T-------------------------------------------------------------------------------
+## ----echo = T----------------------------------------------------------------------------------------------------------
 
 # things we want `NIMBLE` to keep track of:
 # (very useful with complexity)
@@ -206,7 +227,7 @@ nt = 1
 
 
 
-## ----echo = T-------------------------------------------------------------------------------
+## ----echo = T----------------------------------------------------------------------------------------------------------
 
 # one call
 samples02 <- nimbleMCMC(
@@ -224,18 +245,9 @@ samples02 <- nimbleMCMC(
 
 
 
-## ----uniform output, echo = T---------------------------------------------------------------
+## ----uniform output, echo = T------------------------------------------------------------------------------------------
 # First, "Summary" gives us some simple stuff
 samples02$summary$all.chains
-
-# this is important - let's talk through it.
-# prior knowledge said 43-63
-# we updated prior knowledge with new knowledge and reduced 95% CI. 
-# pop sd is exactly the same value as we passed it - does not get sampled - just a constant
-
-
-# (HOW DOES 95% CRED INT differ from 95% CONF INT?)
-# but also,
 
 # .......................................................................
 # INSPECT RESULTS
@@ -266,7 +278,7 @@ library(mcmcplots)
 mcmcplot(samples02$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model02")
 
 
-## ----uniform2, echo = T---------------------------------------------------------------------
+## ----uniform2, echo = T------------------------------------------------------------------------------------------------
 
 tree_model03 <- nimbleCode({
   
@@ -361,7 +373,7 @@ mcmcplot(samples03$samples, dir = here::here('Modules/02_Intro_Bayes/output'), f
 
 
 
-## ----normal prior, echo = T-----------------------------------------------------------------
+## ----normal prior, echo = T--------------------------------------------------------------------------------------------
 # model
 tree_model04 <- nimbleCode({
   
@@ -371,15 +383,10 @@ tree_model04 <- nimbleCode({
   # to set up the standard deviation, we need to make sure that the values are not negative.
   # If you rememeber, a gamma distribution has support from 0 -> Inf. This is a good choice.
   # we'll set the gamma on the precision term and then transform that to something more natural to us - the std. dev. 
-  pop.prec ~ dgamma(0.1, 0.1)
-  pop.var <- 1/pop.prec
-  pop.sd <- sqrt(pop.var)
+  prec ~ dgamma(0.1, 0.1)
+  pop.sd <- 1/sqrt(prec)
   
-  # NOTE: before nimble, had to do something like this:
-  # pop.sd ~ dunif(0, 100)
-  # pop.var <- pop.sd * pop.sd
-  # pop.prec <- 1/pop.var # pass pop.prec to dnorm below
-  
+
   # likelihood
   for(i in 1:nObs){
     tree[i] ~ dnorm(pop.mean, sd = pop.sd) 
@@ -389,7 +396,7 @@ tree_model04 <- nimbleCode({
 
 # inits
 inits <- list(pop.mean = rnorm(n = 1, 100, 10), # now rnorm
-              pop.sd = runif(n = 1))
+              prec = rgamma(n = 1, 0.1,0.1))
 
 # gather data and constants
 tree_data <- list(tree = tree_diameter)
@@ -400,8 +407,8 @@ keepers <- c('pop.mean', 'pop.sd')
 
 # MCMC settings
 nc = 3
-nb = 1000
-ni = nb + 2000
+nb = 5000
+ni = nb + 5000
 nt = 1
 
 # get samples
@@ -437,11 +444,16 @@ library(mcmcplots)
 mcmcplot(samples04$samples, dir = here::here('Modules/02_Intro_Bayes/output'), filename = "tree_model04")
 
 
-## ----peregrines, echo = T-------------------------------------------------------------------
+
+## ----falcon, out.width='50%', fig.align='center', fig.cap='', warning = F, message = F---------------------------------
+knitr::include_graphics(here::here('Modules/02_Intro_Bayes/slide_supps/falcon.jpg'))
+
+
+## ----peregrines, echo = T----------------------------------------------------------------------------------------------
 peregrines <- c(616, 653, 658, 608, 575, 621, 583, 602, 581, 604, 584, 604)
 
 
-## ----scipt, echo = F------------------------------------------------------------------------
+## ----scipt, echo = F---------------------------------------------------------------------------------------------------
 # knitr::purl(input = here::here('Modules/02_Intro_Bayes/02_Eucalypt_trees.Rmd'),
 #             output = here::here('Modules/02_Intro_Bayes/02_Eucalypt_trees.R'))
 
