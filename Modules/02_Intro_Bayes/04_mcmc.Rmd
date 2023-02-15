@@ -104,14 +104,14 @@ norm_df <- data.frame(samples = rnorm(5000))    # Generate samples from distribu
 ggplot(norm_df, aes(samples)) + geom_histogram(fill = pal[3]) + annotate("text", x = 0, y = 750, label = paste("Sample mean = ", round(mean(norm_df$samples),2))) + annotate("text", x = 0, y = 675, label = paste("Sample variance = ", round(sd(norm_df$samples),2))) 
 ```
   
-What about these $\Beta$ distributions we use?
+What about these $Beta$ distributions we use?
 ```{r echo = TRUE, fig.height=2, fig.width=4, warning = F}
 beta_df <- data.frame(samples = rbeta(n = 5000, shape1 = 2, shape2 = 5))
 
 ggplot(beta_df, aes(samples)) + geom_histogram(fill = pal[3]) 
 ```
   
-This is a simplified depiction of what we do in Bayesian Analyses, but hopefully it helps understand the concept of learning about a probability distirbution via sampling.
+This is a simplified depiction of what we do in Bayesian Analyses, but hopefully it helps understand the concept of learning about a probability distribution via sampling.
 
 ## Learning about the posterior by sampling from it
 
@@ -191,7 +191,8 @@ The precise manner in which possible values are characteritized is called the pr
   
   $$f(y) = \frac{N!}{y!(N-y)!}p^y(1-p)^{(N-y)}$$
   
-  where $y$ can take on integer values from $y = 0$ to $y = N$, and the single parameter $p$ is known as the "success probability". 
+  where $y$ can take on integer values from $y = 0$ to $y = N$, and the single parameter $p$ is known as the "success probability".     
+  
   - This is the big deal: the binomial pmf tells us the probabilities of each possible value of y given some success probability parameter value. 
   
 Consider this example:
@@ -214,6 +215,12 @@ round(dbinom(x = 0:5, size = 5, prob = 0.2),2)
 In words, the probability that I observe peregrines on 0 of the 5 visits is 0.33, the probability that I detect peregrines one time is 0.41, and so on.    
 
 We can also do stuff like, "what is the probability of observing peregrines on 2 or more visits?" by summing the associated probabilities of each event in the set of interest $Pr(y = \{2,3,4,5\}) = 0.2 + 0.05 + 0.01 + 0.00 = 0.26$
+
+We can also do cool stuff like calculating probabilities of observing falcons on 2 of 5 visits and there being 1 or more fledged young present during those visits (joint probability distributions!)
+
+**Okay, back to computing the posterior probability**   
+
+**BUT FIRST - how do you all feel about writing functions in R?**
 
 ## Implementing a simple MCMC
 
@@ -238,8 +245,6 @@ Once we have our data, defined a likelihood function and a prior distribution, t
 5) Compute the probability of accepting the candidate $p$ value using the posterior from the proposed $p$ and the previous $p^{k - 1}$
 6) Accept candidate value with probability estimated in the previous step, otherwise retain the previous value
 
-## MCMC: Basic Steps 
-
 Steps 2-6 are repeated many times (e.g., 10,000), resulting $K$ samples of $p$  
 
 - This collection of $p$ values is referred to as a *chain*
@@ -262,10 +267,9 @@ We can just use `runif(1)` to give us a random number between 0 and 1 that occur
   - If the posterior is sensitive to initial values, it could indicate a problem or just that we need to run the chain longer. 
   
 ```{r echo = T, eval = F}
-# Simulate data
-set.seed(277)
-y <- rbinom(20,1,0.7)  # note truth here is 0.7 - probability of detecting, observing, surviving, etc. "give me 20 values of either 0 or 1, with 1 occurring with probability 0.7 and 0 occurring with probability 1-0.7 = 0.3.
-
+# Initial Value (Starting Point) for MCMC
+p <- runif(1)
+(p)
 ```
 
 ## MCMC: Basic Steps
@@ -331,7 +335,7 @@ We'll stick with the normal proposal distribution for now but know that we could
 
 Once we have a proposal $p^*$, we have to decide whether to accept this as our new value of $p^k$  
 
-- If we accept $p^*$, $p^{k} = p^{*{k-1}}$  
+- If we accept $p^*$, $p^{k} = p^{*}$  
 
 - If we reject it, $p^{k} = p^{k-1}$  
 
@@ -366,7 +370,7 @@ $$R = \frac{[y|p^*][p^*]}{[y|p^{k-1}][p^{k-1}]}$$
 
 $R$ tells us the *relative* probability of the proposal (relative to the current value), i.e., which value is more probable
 
-In Metropolis updating we accept $p^*$ whenever $R \geq 1$, i.e. when $p^*$ is more probable than $p^{k-1}$ 
+In Metropolis updating we accept $p^*$ whenever $R \geq 1$, i.e., when $p^*$ is more probable than $p^{k-1}$ 
 
 ## MCMC: basic steps
 
@@ -419,7 +423,7 @@ for(i in 1:n.iters){
   if(keep){
     p <- can  #here is where we overwrite our initial p with our candidate value if it passes test
   }
-  keep_p[i] <- p #store all the keepers - this is our *chain*!
+  keep_p[i] <- p #store values of p - this is our *chain*!
   
 }
 

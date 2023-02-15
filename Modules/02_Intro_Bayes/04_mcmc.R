@@ -30,7 +30,7 @@ set.seed(277)
 y <- rbinom(20,1,0.7)  # note truth here is 0.7 - probability of detecting, observing, surviving, etc.
 
 
-# Compute the posterior on a grid for plotting below
+# Compute the posterior on a grid for plotting below (NOT PART OF MCMC)
 p_grid <- seq(0,1,length=100)
 dense <- rep(0,100)
 for(i in 1:100){
@@ -94,7 +94,7 @@ for(i in 1:n.iters){
   if(keep){
     p <- can  #here is where we overwrite our initial p with our candidate value if it passes test
   }
-  keep_p[i] <- p
+  keep_p[i] <- p #store all values of p - this is our chain!
   
 }
 
