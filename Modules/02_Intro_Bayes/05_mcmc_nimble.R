@@ -49,7 +49,7 @@ constants <- list(nObs = length(peregrines))
 
 data <- list(falcon = peregrines)
 
-inits <- list(pop.mean = rnorm(1, mean = 61, sd = 25),
+inits <- list(pop.mean = rnorm(1, mean = 61, sd = 50),
               pop.sd = rgamma(1, 10, 0.4))
 
 ## -- -- -- -- -- -- -- -- ##
