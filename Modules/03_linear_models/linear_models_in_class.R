@@ -10,7 +10,7 @@ library(nimble)
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-data("LionNoses")
+data("LionNoses") #abd
 #These data come from a paper by Whitman, Starfield, Quadling, & Packer (2004), 
 # in which the authors address the impact of trophy hunting on lion population dynamics. 
 # The authors note that removing male lions can lead to increases in infanticide, 
@@ -45,8 +45,46 @@ lm.noses2
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ## NIMBLE
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+m1 <- nimbleCode({
+  
+  # priors
+  B0 ~ dnorm(mean = 0, sd = 10)
+  B1 ~ dnorm(mean = 0, sd = 10)
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  #likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mean = mu[i], sd = sig)
+    mu[i] <- B0 + B1 * pct.black[i]
+  }
+  
+})
 
 
+
+nimData <- list(y = LionNoses$age)
+nimConsts <- list(nObs = length(LionNoses$age),
+                  pct.black = LionNoses$percentage.black)
+
+nimInits <- list(B0 = rnorm(n = 1, mean = 0, sd = 10),
+                 B1 = rnorm(n = 1, mean = 0, sd = 10),
+                 tau = rgamma(n = 1, 1, 1))
+
+keepers <-  c('B0', 'B1', 'sig')
+
+nim.noses <- nimbleMCMC(code = m1, 
+                        data = nimData,
+                        constants = nimConsts,
+                        inits = nimInits,
+                        monitors = keepers,
+                        niter = 6000,
+                        nburnin = 1000,
+                        thin = 1,
+                        nchains = 3,
+                        summary = T)
+                        
 
 # Don't be bayesic, check your traceplots
 samples_mcmc <- coda::as.mcmc.list(lapply(nim.noses$samples, coda::mcmc))
