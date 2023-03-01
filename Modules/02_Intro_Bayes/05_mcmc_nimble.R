@@ -49,7 +49,7 @@ constants <- list(nObs = length(peregrines))
 
 data <- list(falcon = peregrines)
 
-inits <- list(pop.mean = rnorm(1, mean = 61, sd = 50),
+inits <- list(pop.mean = rnorm(1, mean = 611, sd = 50),
               pop.sd = rgamma(1, 10, 0.4))
 
 ## -- -- -- -- -- -- -- -- ##
@@ -75,7 +75,8 @@ nimbleMCMC_samples <- nimbleMCMC(code = falcon,
                                  inits = inits,
                                  nburnin = 2000, 
                                  niter = 8000,
-                                 nchains = 3)
+                                 nchains = 3,
+                                 summary = T)
 
 head(nimbleMCMC_samples)
 
@@ -118,7 +119,8 @@ falconModel <- nimbleModel(code = falcon,
 
 # Next, build an MCMC object for this model with specified settings
 # in configureMCMC() using buildMCMC().
-conf <- configureMCMC(falconModel, monitors = c("pop.mean", "pop.sd"))
+conf <- configureMCMC(falconModel, 
+                      monitors = c("pop.mean", "pop.sd"))
 
 # note that since we are not really changing any MCMC settings in "conf", 
 # it is unncessary, but good to get in habit
