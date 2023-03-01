@@ -149,7 +149,43 @@ mean(females) + lm.cat$coefficients[2]
 # effects parameterization
 # the model coefficients represent the effect of each level of the predictor variable, 
 # relative to the overall mean of the response variable. 
+m2 <- nimbleCode({
+  
+  # priors
+  B0 ~ dnorm(mean = 100, sd = 20)
+  B1[1] <- 0 # 'corner constraints' so we can est. params (identifiability)
+  B1[2] ~ dnorm(mean = 0, sd = 10)
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mean = mu[i], sd = sig)
+    mu[i] <- B0 + B1[sex[i]]
+  }
+  
+})
 
+nimData <- list(y = jack$jaws)
+nimConsts <- list(nObs = length(jack$jaws),
+                  sex = ifelse(jack$sex == 'female', 1, 2))
+
+nimInits <- list(B0 = rnorm(1,100,20),
+                 B1 = c(NA, rnorm(1, 0, 10)),
+                 tau = rgamma(1,1,1))
+
+keepers <- c('B0', 'B1', 'sig')
+
+nim.jaws <- nimbleMCMC(code = m2,
+                       data = nimData,
+                       constants = nimConsts,
+                       monitors = keepers,
+                       niter = 6000,
+                       nburnin = 1000,
+                       thin = 1,
+                       nchains = 3,
+                       summary = T)
 
 # traceplots
 samples_mcmc <- coda::as.mcmc.list(lapply(nim.jaws$samples, coda::mcmc))
