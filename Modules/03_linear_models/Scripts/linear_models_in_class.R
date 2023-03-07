@@ -347,7 +347,7 @@ predict(cat.mr, data.frame(veg = 'forest', crp = 'not'))
 predict(cat.mr, data.frame(veg = 'grassland', crp = 'enrolled'))
 predict(cat.mr, data.frame(veg = 'grassland', crp = 'not'))
 
-
+# nim model
 
 
 nimData <- list(y = nests)
