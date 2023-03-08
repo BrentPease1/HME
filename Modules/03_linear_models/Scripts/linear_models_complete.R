@@ -60,6 +60,14 @@ m1 <- nimbleCode({
     mu[i] <- B0 + B1*percentage.black[i]
   }
   
+  # SSE
+  for(i in 1:nObs){
+    sq.res[i] <- pow(y[i] - mu[i], 2)
+  }
+  
+  mse <- sum(sq.res[1:nObs]) / (nObs - 2)
+  manual.sig <- sqrt(mse)
+  
 })
 
 nimData <- list(y = LionNoses$age)
@@ -70,7 +78,7 @@ nimInits <- list(B0 = rnorm(1,0,5),
                  B1 = rnorm(1,0,5),
                  tau = rgamma(1,1,1))
 
-keepers <- c('B0', 'B1', 'sig')
+keepers <- c('B0', 'B1', 'sig', 'manual.sig')
 
 nim.noses <- nimbleMCMC(code = m1,
                         constants = nimConsts,
@@ -86,8 +94,8 @@ nim.noses <- nimbleMCMC(code = m1,
 # Don't be bayesic, check your traceplots
 samples_mcmc <- coda::as.mcmc.list(lapply(nim.noses$samples, coda::mcmc))
 
-par(mfrow=c(1,3))
-coda::traceplot(samples_mcmc[, 1:3])
+par(mfrow=c(1,4))
+coda::traceplot(samples_mcmc)
 
 # Check Rhat
 coda::gelman.diag(samples_mcmc)
