@@ -60,6 +60,15 @@ m1 <- nimbleCode({
     mu[i] <- B0 + B1 * pct.black[i]
   }
   
+  # manual sig
+  for(i in 1:nObs){
+    sq.res[i] <- pow(y[i] - mu[i],2)
+  }
+  
+  sse <- sum(sq.res[1:nObs])
+  mse <- sse / (nObs - 2)
+  man.sig <- sqrt(mse)
+  
 })
 
 
@@ -215,7 +224,23 @@ lm.cat2 <- lm(jaws ~ sex-1, data = jack)
 summary(lm.cat2)
 
 # NIM
-
+m3 <- nimbleCode({
+  # priors
+  for(k in 1:2){
+    B0[k] ~ dnorm(mean = 100, sd = 50)
+  }
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mu[i], sd = sig)
+    mu[i] <- B0[sex[i]]
+  }
+  
+  
+})
 
 nimData <- list(y = jack$jaws)
 nimConsts <- list(nObs = length(jack$jaws),
@@ -283,10 +308,53 @@ mr <- lm(dees ~ pred_mass + spp)
 mr2 <- lm(dees ~ pred_mass + spp - 1)
 
 # CHICKADEES - effects parameterization ####
+m4 <- nimbleCode({
+  # priors
+  B0 ~ dnorm(mean = 0, sd = 10)
+  B1 ~ dnorm(mean = 0, sd = 10)
+  B2[1] <- 0
+  B2[2] ~ dnorm(mean = 0, sd = 10)
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mu[i], sd = sig)
+    mu[i] <- B0 + B1 * pred_mass[i] + B2[spp[i]]
+  }
+  
+  
+  }
+)
 
+nimData <- list(y = dees)
+nimConsts <- list(nObs = length(dees),
+                  spp = ifelse(spp == 'BCCH',1,2),
+                  pred_mass = pred_mass)
 
+nimInits <- list(B0 = rnorm(1,0,10),
+                 B1 = rnorm(1, 0, 10),
+                 B2 <- c(NA, rnorm(1,0,10)), #effects
+                 tau = rgamma(1,1,1))
+
+keepers <- c('B0','B1', 'B2', 'sig')
+
+nim.dees <- nimbleMCMC(code = m4,
+                       constants = nimConsts,
+                       data = nimData,
+                       inits = nimInits,
+                       monitors = keepers,
+                       niter = 6000,
+                       nburnin = 1000,
+                       thin = 1,
+                       nchains = 3,
+                       summary = T)
+
+nim.dees$summary$all.chains
+summary(mr)
 
 # CHICKADEES - means parameterization ####
+# mu[i] <- B0[spp[i]] + B1 * pred_mass[i]
 
 
 nimData <- list(y = dees)
@@ -314,8 +382,17 @@ nim.dees <- nimbleMCMC(code = m5,
 nim.dees$summary$all.chains
 summary(mr2)
 
+mr3 <- lm(dees ~ pred_mass*spp - 1)
+predict(mr3, data.frame(pred_mass = 2, spp = "CACH"))
 # NOTE: HOW COULD WE CODE UP CATEGORICAL * CONTINUOUS INTERACTION?
-
+like_this <- nimbleCode({
+  
+  # priors
+  for(k in 1:2){
+    B0[k] ~ dnorm(mean = 0, sd = 10)
+    
+  }
+})
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
