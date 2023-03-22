@@ -4,6 +4,9 @@ library(ggplot2)
 library(dplyr)
 library(nimble)
 library(here)
+library(randomcoloR)
+
+
 ## ------------------ ##
 ## --POISSON DIST--   ##
 ## ------------------ ##
