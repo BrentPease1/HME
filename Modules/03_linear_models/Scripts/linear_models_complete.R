@@ -552,3 +552,116 @@ plot(samples_mcmc[[1]][,1])
 
 nim.nests.m$summary$all.chains
 summary(cat.mr2)
+
+
+
+# MODEL ASSESSMENT in BAYES ANALYSES #####
+
+m5 <- nimbleCode({
+  
+  # priors
+  for(k in 1:2){
+    B0[k] ~ dnorm(mean = 0, sd = 10)
+  }
+  B1 ~ dnorm(mean = 0, sd = 10)
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mean = mu[i], sd = sig)
+    mu[i] <- B0[spp[i]] + B1*pred_mass[i]
+  }
+  
+  
+  # assess model using a sums-of-squares style discrepancy
+  for(i in 1:nObs){
+    residual[i] <- y[i] - mu[i]             # Residuals for observed data
+    predicted[i] <- mu[i]                   # Predicted values are in the mean of the distribution
+    sq.res[i] <- pow(residual[i], 2)        # Squared residuals for observed data
+  
+  
+  # generate replicate data and compute fit statistics
+    y.new[i] ~ dnorm(mean = mu[i], sd = sig) # New dataset perfectly adhering to assumptions of model
+    sq.new[i] <- pow(y.new[i] - predicted[i], 2) # squared residuals for new data
+  }
+  
+  fit.orig <- sum(sq.res[1:nObs]) # SSE for original dataset
+  fit.new <- sum(sq.new[1:nObs])  # SSE for new dataset
+  
+  # test whether new data are more extreme than observed
+  test <- step(fit.new - fit.orig)
+  
+})
+
+
+nimData <- list(y = dees)
+nimConsts <- list(nObs = length(dees),
+                  spp = ifelse(spp == 'BCCH',1,2),
+                  pred_mass = pred_mass)
+
+nimInits <- list(B0 = rnorm(2,0,10),
+                 B1 = rnorm(1, 0, 10),
+                 tau = rgamma(1,1,1))
+
+keepers <- c('B0','B1', 'sig', 'fit.orig', 'fit.new', 'test', 'residual', 'predicted')
+
+nim.dees <- nimbleMCMC(code = m5,
+                       constants = nimConsts,
+                       data = nimData,
+                       inits = nimInits,
+                       monitors = keepers,
+                       niter = 6000,
+                       nburnin = 1000,
+                       thin = 1,
+                       WAIC = T,
+                       nchains = 3,
+                       summary = T)
+
+# get samples usable
+samples_mcmc <- coda::as.mcmc.list(lapply(nim.dees$samples, coda::mcmc))
+
+samples <- do.call(rbind, samples_mcmc)
+
+# BEFORE LOOKING AT ESTIMATES, two things should be done:
+# 1. Assess model convergence
+# 2. Assess whether fitted model is adequate for dataset
+
+par(mfrow=c(2,2))
+coda::traceplot(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B0\\['))])
+coda::traceplot(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B1'))])
+coda::traceplot(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'sig'))])
+
+# Check Rhat
+coda::gelman.diag(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B0\\['))])
+coda::gelman.diag(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B1'))])
+coda::gelman.diag(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'sig'))])
+
+
+# 2a. Plot residuals
+dev.off()
+plot(apply(samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'predicted'))], 2, mean),
+     apply(samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'residual'))], 2, mean), xlab = 'predicted values',
+     ylab = 'residuals')
+abline(h = 0)
+
+
+# 2b. Posterior predictive check (graphical and numerical summary)
+# pull out our fit measures
+fit.new <- samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.new'))]
+fit.orig <- samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.orig'))]
+
+# visualize relationship - looking for 1:1 here
+# if model fits the data, then about half of the points should be lie above and half 
+# below a 1:1 line
+plot(fit.orig, fit.new, main = "Graphical posterior predictive check",
+xlab = "SSQ for actual data set", ylab = "SSQ for ideal (new) data sets")
+abline(0, 1)
+
+# bayesian p-value (numerical summary)
+mean(fit.new > fit.orig)
+
+# same as the derived value that we monitored in model
+test <- samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'test'))]
+mean(test)
