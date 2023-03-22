@@ -555,6 +555,8 @@ summary(cat.mr2)
 
 
 
+# END ####
+
 # MODEL ASSESSMENT in BAYES ANALYSES #####
 
 m5 <- nimbleCode({
