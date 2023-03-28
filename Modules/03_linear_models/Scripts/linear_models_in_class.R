@@ -1,8 +1,8 @@
 # Linear Regression Review
-library(abd)
-library(ggplot2)
-library(dplyr)
-library(nimble)
+library(abd) #lionnoses
+library(ggplot2) #plotting
+library(dplyr) #dip-lering
+library(nimble) #modeling
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -334,7 +334,7 @@ nimConsts <- list(nObs = length(dees),
 
 nimInits <- list(B0 = rnorm(1,0,10),
                  B1 = rnorm(1, 0, 10),
-                 B2 <- c(NA, rnorm(1,0,10)), #effects
+                 B2 = c(NA, rnorm(1,0,10)), #effects
                  tau = rgamma(1,1,1))
 
 keepers <- c('B0','B1', 'B2', 'sig')
@@ -390,9 +390,20 @@ like_this <- nimbleCode({
   # priors
   for(k in 1:2){
     B0[k] ~ dnorm(mean = 0, sd = 10)
+    B1[k] ~ dnorm(mean = 0, sd = 10)
+  }
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
     
+    y[i] ~ dnorm(mu[i], sd = sig)
+    mu[i] <- B0[spp[i]] + B1[spp[i]]*pred_mass[i]
   }
 })
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -425,7 +436,24 @@ predict(cat.mr, data.frame(veg = 'grassland', crp = 'enrolled'))
 predict(cat.mr, data.frame(veg = 'grassland', crp = 'not'))
 
 # nim model
-
+m6 <- nimbleCode({
+  
+  # priors
+  B0 ~ dnorm(0, sd = 10)
+  B1[1] <- 0
+  B1[2] ~ dnorm(0, sd = 10) # effect of grassland (vegetation)
+  B2[1] <- 0
+  B2[2] ~ dnorm(0, sd = 10) # effect of CRP land
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mu[i], sd = sig)
+    mu[i] <- B0 + B1[veg[i]] + B2[crp[i]]
+  }
+})
 
 nimData <- list(y = nests)
 nimConsts <- list(nObs = length(nests),
@@ -472,3 +500,60 @@ predict(cat.mr2, data.frame(veg = 'grassland', crp = 'enrolled'))
 predict(cat.mr2, data.frame(veg = 'forest', crp = 'not'))
 predict(cat.mr2, data.frame(veg = 'grassland', crp = 'not'))
 
+# means param for two cats
+m6 <- nimbleCode({
+  
+  # priors
+  for(k in 1:2){
+    B0[k] ~ dnorm(0, sd = 10)
+    B1[k] ~ dnorm(0, sd = 10)
+  }
+  
+  tau ~ dgamma(1,1)
+  sig <- 1/sqrt(tau)
+  
+  # likelihood
+  for(i in 1:nObs){
+    y[i] ~ dnorm(mu[i], sd = sig)
+    mu[i] <- B0[veg[i]] + B1[crp[i]]
+  }
+  
+  # Derive values
+  forest_crp <- B0[1] + B1[1]
+  forest_no <- B0[1] + B1[2]
+  grass_crp <- B0[2] + B1[1]
+  grass_no <- B0[2] + B1[2]
+})
+
+
+nimData <- list(y = nests)
+nimConsts <- list(nObs = length(nests),
+                  veg = ifelse(veg == 'forest',1,2),
+                  crp = ifelse(crp == 'enrolled',1,2))
+
+nimInits <- list(B0 = rnorm(2,0,10),
+                 B1 = rnorm(2,0,10),
+                 tau = rgamma(1,1,1))
+
+#keepers <- c('B0','B1', 'B2', 'sig')
+keepers <- c('forest_crp','forest_no','grass_crp', 'grass_no', 'sig')
+
+nim.nests <- nimbleMCMC(code = m6,
+                        constants = nimConsts,
+                        data = nimData,
+                        inits = nimInits,
+                        monitors = keepers,
+                        niter = 6000,
+                        nburnin = 1000,
+                        thin = 1,
+                        nchains = 3,
+                        summary = T)
+
+
+# traceplots
+samples_mcmc <- coda::as.mcmc.list(lapply(nim.nests$samples, coda::mcmc))
+
+par(mfrow=c(2,3))
+coda::traceplot(samples_mcmc)
+plot(samples_mcmc[[1]][,1])
+summary(cat.mr2)
