@@ -26,6 +26,7 @@ mean_umf <- 2
 # b1 = log(mean_umf) = b0 + b1, b1 = log(mean_blh) - log(umf)
 lam <- exp(1.609 - 0.9162907*(as.numeric(forest) - 1))
 
+
 # add poisson noise and generate counts
 C <- rpois(n = nObs, lambda = lam)
 
@@ -40,14 +41,39 @@ anova(p1, test = "Chisq") # Likelihood ratio test (LRT)
 
 # return true mean swamper density 
 exp(abs(coef(p1)))
+exp(abs(confint(p1)))
 
 # POISSON BAYES ####
+
+# Notes on bayesian posterior predictive checks
+# Posterior predictive checks are used to evaluate
+# how well a model fits the observed data.
+# The basic idea is to simulate new data (observations)
+# from the model's posterior distribution and compare
+# the new data to the observed data
+
+# If the simulated data from the posterior
+# are similar to the observed data, then this
+# suggests model is reasonable for data.
+# however, simulated data that is quite different
+# from observed may suggest poor fitting model given
+# observed data.
+
+# By generating simulated datasets 
+# from the model's posterior predictive 
+# distribution, we can see how well the 
+# model captures the patterns and variability
+# in the observed data, 
+# and we can use this information to 
+# improve our understanding of the 
+# underlying process we're trying to model.
+
 p1b <- nimbleCode({
   
   # priors
-  B0 ~ dnorm(mean = 0, sd = 100)
+  B0 ~ dnorm(mean = 0, sd = 10)
   B1[1] <- 0 # 'corner constraints' so we can est. params (identifiability)
-  B1[2] ~ dnorm(mean = 0, sd = 100)
+  B1[2] ~ dnorm(mean = 0, sd = 10)
   
 
   # likelihood
@@ -60,9 +86,9 @@ p1b <- nimbleCode({
   # Pearson goodness of fit
   # Residual check for deviation between observed and predicted
     Pres[i] <- (C[i] - lambda[i] / sqrt(lambda[i]))            # pearson residual
+    sq.res[i] <- pow(Pres[i],2)                                # squared residuals
     C.new[i] ~ dpois(lambda[i])                                # Replicate Dataset - generated under perfect conditions
     Pres.new[i] <- (C.new[i] - lambda[i] / sqrt(lambda[i]))    # pearson residual for new data
-    sq.res[i] <- pow(Pres[i],2)                                # squared residuals
     sq.res.new[i] <- pow(Pres.new[i], 2)
   }
   
@@ -75,8 +101,8 @@ nimData <- list(C = C)
 nimConsts <- list(nObs = length(C),
                   forest = ifelse(forest == 'BLH', 1, 2))
 
-nimInits <- list(B0 = rnorm(1,0,100),
-                 B1 = c(NA, rnorm(1, 0, 100)))
+nimInits <- list(B0 = rnorm(1,0,10),
+                 B1 = c(NA, rnorm(1, 0, 10)))
 
 keepers <- c('B0', 'B1', 'lambda', 'Pres', 'fit', 'fit.new')
 
@@ -90,8 +116,9 @@ p1b <- nimbleMCMC(code = p1b,
                        nchains = 3,
                        summary = T)
 
+# look at estimates
 p1b$summary$all.chains
-p1
+coef(p1)
 
 # get samples usable
 samples_mcmc <- coda::as.mcmc.list(lapply(p1b$samples, coda::mcmc))
@@ -147,17 +174,23 @@ legend("topleft", legend = levels(forest), col = c(rgb(1,0,0,0.5), rgb(0,0,1,0.5
 
 moose <- read.table(here('Modules/03_linear_models/Data/moose.txt'))
 str(moose)
+head(moose)
 
 # visualize relationship
-ggplot(exp.m, aes(voc,observed))+theme_bw()+
+ggplot(moose, aes(voc,observed))+theme_bw()+
   geom_point(position = position_jitter(w = 2, h = 0.05), size=3) +
   geom_smooth(colour="red") + xlab("Visual Obstruction") +
   ylab("Detection = 1")
 
 
+# !! Define data/problem/model
+
+
+
 # fit freq model
 m1 <- glm(observed ~ voc, data = moose, family = binomial())
 summary(m1)
+
 
 (ci.m1 <- confint(m1))
 
@@ -167,13 +200,21 @@ exp(coef(m1))
 exp(ci.m1)
 
 # these are not probabilities! They are log-odds and odds
-# can transform using inverse-logit to get probabilities
+# can transform to  probabilities using inverse-logit 
+# if logit is log(x) / (1 - log(x)), then inverse of logit is:
 inv.logit <- function(x){
   exp(x) / (1+exp(x))
 }
+
+# intercept converted to probability scale
 inv.logit(coef(m1)[1])
+
+# same as above
 plogis(coef(m1)[1])
 
+# can use predict if still feeling uncomfortable
+predict(m1, data.frame(voc = 0), type = 'link')
+predict(m1, data.frame(voc = 0), type = 'response')
 # model predicts 85% chance of detecting moose when it is completely out in the open (no veg, voc = 0)
 
 ggplot(moose, aes(voc,observed)) + theme_bw() + 
@@ -196,9 +237,19 @@ m2code <- nimbleCode({
   for(i in 1:nObs){
     y[i] ~ dbern(p[i])
     logit(p[i]) <- B0 + B1*voc[i]
-  }
-  
-  
+
+  # Fit assessments
+  # Computation of fit statistic (for Bayesian p-value)
+  Presi[i] <- abs(y[i]-p[i])	 # Absolute residual
+  y.new[i]~ dbern(p[i])
+  Presi.new[i] <- abs(y.new[i]-p[i])
+}
+
+
+fit <- sum(Presi[1:nObs])# Discrepancy for actual data set
+fit.new <- sum(Presi.new[1:nObs]) 		# Discrepancy for replicate data set
+
+
 })
 
 
@@ -209,7 +260,7 @@ nimConsts <- list(nObs = nrow(moose),
 nimInits <- list(B0 = rnorm(1),
                  B1 = rnorm(1))
 
-keepers <- c('B0', 'B1')
+keepers <- c('B0', 'B1', 'fit', 'fit.new')
 
 m2 <- nimbleMCMC(code = m2code,
                   data = nimData,
@@ -221,17 +272,12 @@ m2 <- nimbleMCMC(code = m2code,
                   nchains = 3,
                   summary = T)
 
-m2$summary$all.chains
-
-
 # get samples usable
 samples_mcmc <- coda::as.mcmc.list(lapply(m2$samples, coda::mcmc))
 
 samples <- do.call(rbind, samples_mcmc)
 
-# BEFORE LOOKING AT ESTIMATES, two things should be done:
-# 1. Assess model convergence
-# 2. Assess whether fitted model is adequate for dataset
+# Assess model convergence
 
 par(mfrow=c(1,2))
 coda::traceplot(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B0'))])
@@ -240,9 +286,29 @@ coda::traceplot(samples_mcmc[, which(stringr::str_detect(string = colnames(sampl
 coda::gelman.diag(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B0'))])
 coda::gelman.diag(samples_mcmc[, which(stringr::str_detect(string = colnames(samples), pattern = 'B1'))])
 
+# Assess model fit
+# 2a. Posterior Predictive check
+plot(samples[, 'fit'],
+     samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.new'))], xlab = 'Discrepancy measure for actual data',
+     ylab = 'Discrepancy for perfect data')
+abline(0,1, lwd = 2, col = "black")
 
-# PREDICTIONS FROM MODEL
+# Bayes P-value
+# proportion of simulated datasets that are as or more
+# extreme than the observed data
+mean(samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.new'))] > samples[, 'fit'])
 
+# Inspect model output
+m2$summary$all.chains
+
+# Great, let's make some inference from the model
+# For example, we can predict response given a new dataset
+
+
+# make a vector of all possible VOC values for predictions
+pred.voc <- seq(0, 100, 1)
+
+# predict from model
 m2code <- nimbleCode({
   
   # priors
@@ -262,15 +328,12 @@ m2code <- nimbleCode({
   }
 })
 
-# make a vector of all possible VOC values
-all_voc <- seq(0, 100, 1)
-
 
 nimData <- list(y = moose$observed)
 nimConsts <- list(nObs = nrow(moose),
                   voc = moose$voc,
-                  pred.voc = all_voc,     # bring in predicted values here
-                  nPred = length(all_voc)) 
+                  pred.voc = pred.voc,     # bring in predicted values here
+                  nPred = length(pred.voc)) 
 
 nimInits <- list(B0 = rnorm(1),
                  B1 = rnorm(1))
@@ -289,27 +352,36 @@ m2 <- nimbleMCMC(code = m2code,
 
 
 samples_mcmc <- coda::as.mcmc.list(lapply(m2$samples, coda::mcmc))
+# pull out predicted ps
 predicted_p <- samples_mcmc[, which(stringr::str_detect(string = colnames(samples_mcmc[[1]]), pattern = 'p.pred\\['))]
+# see what it looks like
+# three chains with 5,000 iterations
+# in R, list of 3 matrices with structure of iterations on rows and predicted ps on columns 5,000 x 101
 str(predicted_p)
 
-# learn
+# Visualize predictions with uncertainty
 dev.off()
-test <- predicted_p[[1]] # one chain
-test <- predicted_p[[1]][,1] # one chain, the first value of VOC (VOC = 0)
-hist(test)
-test <- predicted_p[[1]][1,] # one chain, first iteration for all sites
+pp <- predicted_p[[1]] # one chain
+pp <- predicted_p[[1]][,1] # one chain, the first value of VOC (VOC = 0)
+hist(pp)
+pp <- predicted_p[[1]][1,] # one chain, first iteration for all sites
 
 for(i in 1:500){
   hold <- predicted_p[[1]][i,] # one chain, one iteration for all sites
   
   if(i == 1){
-    plot(x = all_voc, y = hold, type = 'l', lty = 1, lwd = 2, col = alpha(randomcoloR::randomColor(count = 1), 0.2),
-         xlab = 'Visual Obstruction', ylab = 'Detection Probability')
+    plot(x = pred.voc, y = hold, type = 'l', lty = 1, lwd = 2, col = alpha(randomcoloR::randomColor(count = 1), 0.2),
+         xlab = 'Visual Obstruction', ylab = 'Detection Probability', ylim = c(0,1))
   } else{
-    lines(all_voc, hold, lty = 1, lwd = 2, col = alpha(randomcoloR::randomColor(count = 1), 0.2))
+    lines(pred.voc, hold, lty = 1, lwd = 2, col = alpha(randomcoloR::randomColor(count = 1), 0.2))
   }
 }
 
-# add in mean
+# add in mean and 95% CI
 mean_p <- apply(predicted_p[[1]],2,mean)
-lines(all_voc, mean_p, lty = 1, lwd = 6, col = 'black')
+low <- apply(predicted_p[[1]],2,FUN = function(x) quantile(x, probs = c(0.025)))
+high <- apply(predicted_p[[1]],2,FUN = function(x) quantile(x, probs = c(0.975)))
+
+lines(pred.voc, mean_p, lty = 1, lwd = 6, col = 'black')
+lines(pred.voc, low, lty = 2, lwd = 4, col = 'black')
+lines(pred.voc, high, lty = 2, lwd = 4, col = 'black')
