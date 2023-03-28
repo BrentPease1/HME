@@ -107,14 +107,15 @@ nimInits <- list(B0 = rnorm(1,0,10),
 keepers <- c('B0', 'B1', 'lambda', 'Pres', 'fit', 'fit.new')
 
 p1b <- nimbleMCMC(code = p1b,
-                       data = nimData,
-                       constants = nimConsts,
-                       monitors = keepers,
-                       niter = 6000,
-                       nburnin = 1000,
-                       thin = 1,
-                       nchains = 3,
-                       summary = T)
+                  data = nimData,
+                  constants = nimConsts,
+                  monitors = keepers,
+                  inits = nimInits,
+                  niter = 6000,
+                  nburnin = 1000,
+                  thin = 1,
+                  nchains = 3,
+                  summary = T)
 
 # look at estimates
 p1b$summary$all.chains
