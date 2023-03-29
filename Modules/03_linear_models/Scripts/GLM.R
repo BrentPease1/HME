@@ -118,7 +118,7 @@ p1b <- nimbleMCMC(code = p1b,
                   summary = T)
 
 # look at estimates
-p1b$summary$all.chains
+head(p1b$summary$all.chains)
 coef(p1)
 
 # get samples usable
@@ -153,7 +153,7 @@ plot(samples[, 'fit'],
 abline(0,1, lwd = 2, col = "black")
 
 # 2a. Bayes p-value
-# 2a. Proportion of simu;ated datasets that are equally or more extreme than observed.
+# 2a. Proportion of simulated datasets that are equally or more extreme than observed.
 # 2a. Target is 0.5 = model is performing as expected
 # 2a. Deviation from 0.5 is okay, no strict threshold for rejection. 0.3 - 0.7 is fine, use judgement as you approach bounds
 mean(samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.new'))] > samples[, 'fit'])
@@ -270,6 +270,7 @@ m2 <- nimbleMCMC(code = m2code,
                   data = nimData,
                   constants = nimConsts,
                   monitors = keepers,
+                 inits = nimInits,
                   niter = 6000,
                   nburnin = 1000,
                   thin = 1,
@@ -353,6 +354,7 @@ m2 <- nimbleMCMC(code = m2code,
                  data = nimData,
                  constants = nimConsts,
                  monitors = keepers,
+                 inits = nimInits,
                  niter = 6000,
                  nburnin = 1000,
                  thin = 1,
