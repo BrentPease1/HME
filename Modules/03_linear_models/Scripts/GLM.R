@@ -153,6 +153,9 @@ plot(samples[, 'fit'],
 abline(0,1, lwd = 2, col = "black")
 
 # 2a. Bayes p-value
+# 2a. Proportion of simu;ated datasets that are equally or more extreme than observed.
+# 2a. Target is 0.5 = model is performing as expected
+# 2a. Deviation from 0.5 is okay, no strict threshold for rejection. 0.3 - 0.7 is fine, use judgement as you approach bounds
 mean(samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'fit.new'))] > samples[, 'fit'])
 
 # Histogram Colored (blue and red)
@@ -302,7 +305,12 @@ mean(samples[, which(stringr::str_detect(string = colnames(samples), pattern = '
 # Inspect model output
 m2$summary$all.chains
 
-# Great, let's make some inference from the model
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+# Great, let's use the output to learn about the problem
 # For example, we can predict response given a new dataset
 
 
