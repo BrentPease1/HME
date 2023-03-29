@@ -1,0 +1,377 @@
+---
+title: "Hierarchical Modeling in Ecology"
+subtitle: "FORHME"
+date: "updated on `r Sys.Date()`"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## What is hierarchical modeling?
+
+**Hierarchical models** are a broad class of models that can have different meanings across disciplines
+
+- Generally speaking, they can be models that allow for the estimate of global and local effects
+  - In ecology, this could be how changes in environmental features and population density at a local scale affect the distribution/abundance of that species at a regional or global scale
+- They can also be a sequence of probability models that are ordered by their conditional probability structure such that they describe conditionally dependent random variables
+
+## What is hierarchical modeling?
+
+**Hierarchical models**, in this course, are models that describe the true state of nature (the thing we care about but that is not fully observable) and the measurement error we experience in our quest of truth.
+
+## What is hierarchical modeling?
+
+**Hierarchical models** are models that have "submodels":
+
+- At least one submodel for the thing we care about
+- At least one submodel for the measurement error blurring our understanding
+
+We'll find in practice that the submodels are conditionally dependent and are therefore ordered to represent this conditional probability structure
+
+## What is hierarchical modeling?
+
+**Hierarchical models** are, arguably, the perfect framework for inference about the three state variables that we usually care about in wildlife conservation and management:
+
+- distribution
+- abundance
+- richness
+
+because they, in a single hierarchical model, can accommodate:
+
+- multiple datasets
+- multiple sources of variability and error
+- multiple scales of measurement
+
+all while propagating the combined uncertainty into every estimand^[a quantity that is to be estimated in a statistical analysis] from the model. 
+
+## What is hierarchical modeling?
+
+Fortunately for us simpleton ecologists, **Hierarchical models** *compartmentalize* big complex problems (models) into smaller, far less complex sub problems. 
+
+This is an ideal framework for describing jointly the true state of a system of interest - such as an animal population - and the potentially complex measurement processes with varying types of error.
+
+## Models for the thing we care about
+
+The focus of most ecological modeling is to inform  decisions around the conservation and management of wildlife.This usually results in focusing on on three key **state variables**:
+
+### Abundance 
+
+> The number of individual organisms in a population at a particular point in time   
+
+### Occurence
+
+> The spatial distribution of organisms with a particular region at a particular point in time  
+
+### Richness
+
+> The number of co-occuring species at a given location and a particular point in time  
+
+  
+## Models for the thing we care about
+
+Unknowingly for most, these three state variables are "areal summaries" of an underlying ecological process.
+
+That is, whether we care about the number of gray fox in a given area or whether some area is occupied by a tiger salamander, the ecological patterns we see is the result of many interacting ecological factors, and we only (partly) observe a summary of the truth.
+
+## Models for the thing we care about
+
+We can think of the stochastic ecological process as a *point process* that results in a *point pattern*. We can use *point pattern models* to describe the spatial arrange of objects (animals, plants) that are irregularly or randomly distributed in space.
+
+## Models for the thing we care about
+
+```{r point pattern, echo = F}
+# Arguments
+
+quad.size = 10
+cell.size = 1
+intensity = 1
+
+# expected number of individuals
+exp.M <- intensity * quad.size^2
+
+# true population size is random draw from poisson distribution
+set.seed(2756472)
+M <- rpois(1, exp.M)
+
+# uniformly distribute in space (is this a good assumption?)
+u1 <- runif(M, 0, quad.size)
+u2 <- runif(M, 0, quad.size)
+
+# # set some plotting parameters
+# par(mfrow = c(2, 2), mar = c(5, 5, 5, 2), 
+#     cex.lab = 1.5, cex.axis = 1.3, cex.main = 1.3)
+
+# visualize population
+plot(x = u1, y = u2, xlab = "x coord", ylab = "y coord", 
+     cex = 1, pch = 16, asp = 1,
+     main = paste("Point pattern: \nIntensity =",
+                  intensity, ", M =", M, "inds."), 
+     xlim = c(0, quad.size),
+     ylim = c(0, quad.size), 
+     frame = F, 
+     col = "navy")
+```
+
+## Models for the thing we care about
+
+To describe the things we care about, we just have to discretize space...
+
+```{r discrete, echo = F}
+# Arguments
+
+quad.size = 10
+cell.size = 1
+intensity = 1
+
+# expected number of individuals
+exp.M <- intensity * quad.size^2
+
+# true population size is random draw from poisson distribution
+set.seed(2756472)
+M <- rpois(1, exp.M)
+
+# uniformly distribute in space (is this a good assumption?)
+u1 <- runif(M, 0, quad.size)
+u2 <- runif(M, 0, quad.size)
+
+#### ABUNDANCE ####
+
+breaks <- seq(0, quad.size, cell.size)
+n.cell <- (quad.size/cell.size)^2
+mid.pt <- breaks[-length(breaks)] + 0.5 * cell.size
+
+N <- as.matrix(table(cut(u1, breaks = breaks), cut(u2, breaks = breaks)))
+lambda <- round(mean(N), 2)
+var <- var(c(N))
+
+# visualize population
+plot(u1, u2, xlab = "x coord", ylab = "y coord", 
+     cex = 1, pch = 16, asp = 1, 
+     xlim = c(0, quad.size), ylim = c(0, quad.size), frame = FALSE, col = "navyblue")
+
+# visualize abundance in each cell
+for (i in 1:length(breaks)) {
+  for (j in 1:length(breaks)) {
+    segments(breaks[i], breaks[j], rev(breaks)[i], 
+             breaks[j])
+    segments(breaks[i], breaks[j], breaks[i], rev(breaks)[j])
+  }
+}
+```
+
+## Models for the thing we care about
+
+...then count them up!
+
+```{r abundance, echo = F}
+# Arguments
+
+quad.size = 10
+cell.size = 1
+intensity = 1
+
+# expected number of individuals
+exp.M <- intensity * quad.size^2
+
+# true population size is random draw from poisson distribution
+set.seed(2756472)
+M <- rpois(1, exp.M)
+
+# uniformly distribute in space (is this a good assumption?)
+u1 <- runif(M, 0, quad.size)
+u2 <- runif(M, 0, quad.size)
+
+#### ABUNDANCE ####
+
+breaks <- seq(0, quad.size, cell.size)
+n.cell <- (quad.size/cell.size)^2
+mid.pt <- breaks[-length(breaks)] + 0.5 * cell.size
+
+N <- as.matrix(table(cut(u1, breaks = breaks), cut(u2, breaks = breaks)))
+lambda <- round(mean(N), 2)
+var <- var(c(N))
+
+# visualize population
+plot(u1, u2, xlab = "x coord", ylab = "y coord", 
+     cex = 1, pch = 16, asp = 1, 
+     xlim = c(0, quad.size), ylim = c(0, quad.size), frame = FALSE, col = "navyblue")
+
+# visualize abundance in each cell
+for (i in 1:length(breaks)) {
+  for (j in 1:length(breaks)) {
+    segments(breaks[i], breaks[j], rev(breaks)[i], 
+             breaks[j])
+    segments(breaks[i], breaks[j], breaks[i], rev(breaks)[j])
+  }
+}
+for (i in 1:length(mid.pt)) {
+  for (j in 1:length(mid.pt)) {
+    text(mid.pt[i], mid.pt[j], N[i, j], cex = 10^(0.8 - 
+                                                    0.4 * log10(n.cell)), col = "blue")
+  }
+}
+# frame
+polygon(c(0, quad.size, quad.size, 0), c(0, 0, quad.size, quad.size), lwd = 3, col = NA, border = "black")
+
+
+```
+
+## Models for the thing we care about
+
+...or describe the proportion of cells they occupy!
+
+```{r occupancy, echo = F}
+# Arguments
+
+quad.size = 10
+cell.size = 1
+intensity = 1
+
+# expected number of individuals
+exp.M <- intensity * quad.size^2
+
+# true population size is random draw from poisson distribution
+set.seed(2756472)
+M <- rpois(1, exp.M)
+
+# uniformly distribute in space (is this a good assumption?)
+u1 <- runif(M, 0, quad.size)
+u2 <- runif(M, 0, quad.size)
+
+#### ABUNDANCE ####
+
+breaks <- seq(0, quad.size, cell.size)
+n.cell <- (quad.size/cell.size)^2
+mid.pt <- breaks[-length(breaks)] + 0.5 * cell.size
+
+N <- as.matrix(table(cut(u1, breaks = breaks), cut(u2, breaks = breaks)))
+lambda <- round(mean(N), 2)
+var <- var(c(N))
+
+# z is parameter indicating whether cell is occupied
+z <- N
+z[z > 1] <- 1
+psi <- mean(z)
+
+# visualize population
+plot(u1, u2, xlab = "x coord", ylab = "y coord", 
+     cex = 1, pch = 16, asp = 1, 
+     main = paste("Occurrence pattern: \nRealized occupancy =", 
+                  round(psi, 2)), xlim = c(0, quad.size), 
+     ylim = c(0, quad.size), frame = FALSE, col = "navyblue")
+
+# visualize whether a given cell is occupied
+for (i in 1:length(breaks)) {
+  for (j in 1:length(breaks)) {
+    segments(breaks[i], breaks[j], rev(breaks)[i], 
+             breaks[j])
+    segments(breaks[i], breaks[j], breaks[i], rev(breaks)[j])
+  }
+}
+for (i in 1:(length(breaks) - 1)) {
+  for (j in 1:(length(breaks) - 1)) {
+    polygon(c(breaks[i], breaks[i + 1], breaks[i + 
+                                                 1], breaks[i]), c(breaks[j], breaks[j], breaks[j + 
+                                                                                                  1], breaks[j + 1]), col = rgb(0, 0, 255, max = 255, alpha = 125, names = "blue50"), density = z[i, 
+                                                                                                                                                 j] * 100)
+  }
+}
+# frame
+polygon(c(0, quad.size, quad.size, 0), 
+        c(0, 0, quad.size,quad.size), 
+        lwd = 3, col = NA, border = "black")
+
+
+```
+
+## Models for the thing we care about
+
+So, despite being so foundational in all of ecology, distribution, abundance, and richness are simiply derived quantities resulting from discrete space.
+
+Distribution/abundance results by aggregating an underlying *point pattern* over a study area that results from a *point pattern process* 
+
+Richness is a result of aggregating point patterns of *all species* (of interest) at some study area
+
+## Models for the thing we care about
+
+Two problems: 
+
+1. We only partially observe the true state of nature
+2. Our partial observation of truth is plagued by measurement error
+
+We need a model for our flawed observations!
+
+## Models for our flawed observations
+
+Or, Measurement Error Models in Ecology
+
+Measurement error is the difference between a measured value and the true value. This error can arise from:
+
+- imprecise measurement instruments (e.g., not calibrated scale)
+- varied environmental conditions 
+- observer limitations/mismeasurement
+
+## Models for our flawed observations
+
+You all have likely attempted to minimize measurement error in your research by standardizing sampling protocols and rigorously training research technicians.
+
+Despite this, error still occurs.
+
+Solution? Statistical techniques to account for measurement error (i.e., hierarchical models)
+
+## Models for our flawed observations
+
+With discrete measurements such as abundance, distribution, or richness, we usually deal with two measurement errors: false-negative and false-positive errors.
+
+False-negative: an individual or a species is overlooked at a site where it occurs
+
+False-positive: overcounting individuals or mis-IDing a species, giving credit to its occurrence when it was truly absent
+
+## Models for our flawed observations
+
+$$N = {C \over p} $$
+
+where $N$ is the true number of individuals, $C$ is our count of the number of individuals, and $p$ is the detection or encounter probability of an individual 
+
+False-negative detection error is *the* detection error address in almost every capture-recapture and related methods described in ecology. 
+
+False-negative detection error occurs in almost every dataset of distribution and abundance, regardless of the taxa
+
+## Models for our flawed observations
+
+#### False-positive errors
+
+Very common in counts of individuals - i.e., overcounting    
+
+For studies of distribution, FP error occurs when we **think** a species is present but is truly absent    
+
+Less common than FN errors, but several models have been developed to deal with this error. Most simulations show that this FP error is less detrimental to our inference unless extreme.
+
+## Models for our flawed observations
+
+In our areal-summarized abundance and distribution models, FN and FP are the most common errors.  
+
+There are also "state classification" errors - adult vs juvenile, size class, potentially even male/female.   
+
+State classification errors are an issue in "multistate" models where we are differentiating among these groups.    
+
+## Models for our flawed observations
+
+One last error - "location error"   
+
+When left as points (not areally summarized), then we can have errors in exact location of individual (feature of interest).   
+
+Esp important in abundance/density estimators - distance sampling, etc. 
+
+Issues also arise when we discretize space - e.g., assign individuals to wrong grid cell   
+
+## Hierarchical models as the solution
+
+Given the plague of measurement error, it is not sufficient for us to just describe an ecological model for our study system - we must explicitly account for measurement error   
+
+Hierarchical models are the solution for this problem.   
+
+Further, **Bayesian** Hierarchical models are the way...
