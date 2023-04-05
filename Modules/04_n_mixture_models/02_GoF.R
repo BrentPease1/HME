@@ -107,7 +107,7 @@ m2 <- nimbleMCMC(code = nmix1,
                  samplesAsCodaMCMC = TRUE)
 
 
-params_of_interest <- c("lambda", "p")
+params_of_interest <- c("lambda", "p",'bpv')
 # inspect posterior distributions
 mcmcplot(m2$samples[,params_of_interest])
 

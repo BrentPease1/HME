@@ -132,12 +132,12 @@ m2 <- nimbleMCMC(code = nmix1,
                  constants = nimConsts,
                  monitors = keepers,
                  inits = nimInits,
-                 niter = 25000,
-                 nburnin = 5000,
-                 thin = 20,
+                 niter = 6000,
+                 nburnin = 1000,
+                 thin = 1,
                  nchains = 3,
                  summary = T,
-                 samplesAsCodaMCMC = TRUE)
+                 samplesAsCodaMCMC = TRUE) #this is also new - can skip some data mgmt steps with this
 
 
 params_of_interest <- c("lambda", "p")
@@ -148,5 +148,4 @@ mcmcplot(m2$samples[,params_of_interest])
 m2$summary
 
 
-# GOODNESS OF FIT FOR 
 
