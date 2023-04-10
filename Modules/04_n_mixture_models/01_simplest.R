@@ -122,7 +122,7 @@ nimConsts <- list(M = M,
 Nst <- apply(C,1,max)
 
 nimInits <- list(N = Nst,
-                 lambda = rgamma(1,0.1, 0.1),
+                 lambda = rgamma(1, 0.01, 0.01),
                  p = rbeta(1,1,1))
 
 keepers <- c('lambda', 'p', 'Ntotal')
@@ -132,9 +132,9 @@ m2 <- nimbleMCMC(code = nmix1,
                  constants = nimConsts,
                  monitors = keepers,
                  inits = nimInits,
-                 niter = 6000,
-                 nburnin = 1000,
-                 thin = 1,
+                 niter = 50000,
+                 nburnin = 10000,
+                 thin = 20,
                  nchains = 3,
                  summary = T,
                  samplesAsCodaMCMC = TRUE) #this is also new - can skip some data mgmt steps with this
