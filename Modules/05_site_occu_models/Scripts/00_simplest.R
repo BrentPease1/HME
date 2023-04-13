@@ -41,13 +41,16 @@ backTransform(fm1, "det")
 
 # Specify model in BUGS language
 m1 <- nimbleCode({
+  
   # Priors
   psi ~ dunif(0, 1)
   p ~ dunif(0, 1)
+  
   # Likelihood
   for (i in 1:M) {    # Loop over sites
-    z[i] ~ dbern(psi)         # State model
+    z[i] ~ dbern(psi) # State model
     for (j in 1:J) { # Loop over replicate surveys
+      y[i,j] ~ dbern(mu[i])
     }
      mu[i] <- z[i]*p  
   }
@@ -71,7 +74,7 @@ m1 <- nimbleMCMC(code = m1,
                  data = nimData,
                  constants = nimConsts,
                  monitors = keepers,
-                 inits = nimInits,
+                 inits = inits,
                  niter = 25000,
                  nburnin = 5000,
                  thin = 20,
