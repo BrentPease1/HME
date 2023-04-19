@@ -7,13 +7,14 @@ library(fasterize)
 library(verification)
 library(unmarked)
 library(ggplot2)
+library(dplyr)
 
 # we're all the same
 set.seed(73273)
 
 # set sample sizes
-M <- 20^2
-J <- 5
+M <- 20^2 # sites
+J <- 5    # surveys
 
 
 # Set up a square lattice region
@@ -26,7 +27,7 @@ distance <- as.matrix(dist(simgrid[, 1:2]))
 
 #simulate the covariates
 index <- 1:M
-phi = runif(1, 0, 0.5)
+phi  <-  runif(1, 0, 0.5)
 forest <- MASS::mvrnorm(1, rep(0, M), exp(-phi*distance))
 
 # create raster to interact with covariates and hold other simulated data
@@ -80,6 +81,7 @@ sum(apply(y,1,max))
 
 # bring covariates and observations together 
 dat <- data.frame(coords = raster::coordinates(ras), raster::values(ras), y, dist, elev)
+names(dat)[8:22] <- c(paste0('visit_', 1:5), paste0('dist_',1:5), paste0('elev_', 1:5))
 head(dat)
 
 # --- --- --- --- end simulation data prep --- --- --- --- 
@@ -92,13 +94,17 @@ head(dat)
 
 # also shows how to bring in covariates into unmarked
 umf <- unmarkedFrameOccu(y = y,
-                         siteCovs = data.frame(forest = dat[, c('forest')]),
+                         siteCovs = data.frame(forest = dat[, c('forest')]), # talk about this
                          obsCovs = list(dist = dist, elev = elev))
 
 summary(umf)                     # Summarize UMF
 (fm1 <- occu(~1 ~1, data = umf)) # Fit model
 (fm2 <- occu(~dist + elev ~ forest, data = umf)) # Fit model
 
+# reminder
+c(B0, B1, alpha0, alpha1, alpha2)
+
+# get on prob scale
 backTransform(fm2, 'state') # doesn't work
 lc <- linearComb(fm2, c(1, 0), type="state") # Estimate occupancy on the log scale when forest=0
 backTransform(lc)                           
@@ -108,6 +114,10 @@ plogis(B0)
 
 lc <- linearComb(fm2, c(1, max(forest)), type="state") # Estimate occupancy on the logit scale when forest= max(forest)
 (lc_fm2 <- backTransform(lc))
+
+# get 95% CI and can do this for a range of predictor values
+preds <- predict(fm2, 'state', newdata = data.frame(forest = max(forest)))
+preds$model <- "full_data"
 # truth
 plogis(B0 + B1*max(forest))
 
@@ -119,7 +129,7 @@ plogis(B0 + B1*max(forest))
 
 # Visit X percent of the grid
 # 20% = 400*.2 = 80 sites
-sites <- sample(1:nrow(simgrid), nrow(simgrid) * 0.20)
+sites <- sample(1:M, M * 0.20)
 
 #visualize
 plot(ras$Z, main = "True Occurrence with sampling sites")
@@ -134,8 +144,22 @@ summary(umf)
 lc <- linearComb(fm3, c(1, max(forest)), type="state") # Estimate occupancy on the log scale when forest=0
 (lc_fm3 <- backTransform(lc))
 
+# get 95% CI and can do this for a range of predictor values
+fm3_pred <- predict(fm3, 'state', newdata = data.frame(forest = max(forest)))
+fm3_pred$model <- 'sampled'
+preds <- rbind(preds, fm3_pred)
 
+# Create plot
+ggplot(preds, aes(x = model, y = Predicted)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) +
+  geom_hline(yintercept = plogis(B0 + B1*max(forest)), linewidth = 1, col = 'red') +
+  scale_y_continuous(limits = c(0,1)) +
+  labs(x = "Model", y = "Predicted") +
+  ggtitle("Predicted Values with 95% Confidence Intervals") +
+  theme_minimal()
 
+#
 
 # Was that a fluke? 
 holder <- data.frame(n_sites = length(sites), prop_sites = length(sites)/M, n_surveys = ncol(y), rep = 0,
@@ -179,7 +203,10 @@ for(i in 1:nsim){
 ggplot(holder, aes(rep, forest_est)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = forest_low, ymax = forest_high)) +
-  geom_hline(yintercept = B1, linewidth = 1, col = 'red')
+  geom_hline(yintercept = B1, linewidth = 1, col = 'red') +
+  labs(x = "Replicate", y = "Regression Coefficient") +
+  ggtitle("Estimated Effect of Forest Cover") +
+  theme_minimal()
 
 # how many times did 95% CI cover true effect of forest cover
 length(which(holder$forest_low <= B1 & B1 <= holder$forest_high)) / nsim
@@ -189,12 +216,22 @@ length(which(holder$forest_low <= B1 & B1 <= holder$forest_high)) / nsim
 ggplot(holder, aes(rep, psi_mean)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = psi_low, ymax = psi_high)) +
-  geom_hline(yintercept = plogis(B0), linewidth = 1, col = 'red')
+  geom_hline(yintercept = plogis(B0), linewidth = 1, col = 'red')+
+  labs(x = "Replicate", y = "Predicted Occurence") +
+  ggtitle("Estimated Occupancy Prob when forest = 0") +
+  theme_minimal()
+
 # est of occupancy at forest=max(forest)
 ggplot(holder, aes(rep, psi_max_mean)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = psi_max_low, ymax = psi_max_high)) +
-  geom_hline(yintercept = plogis(B0 + B1*max(forest)), linewidth = 1, col = 'red')
+  geom_hline(yintercept = plogis(B0 + B1*max(forest)), linewidth = 1, col = 'red')+
+  labs(x = "Replicate", y = "Predicted Occurence") +
+  ggtitle("Estimated Occupancy Prob when forest = max(forest") +
+  theme_minimal()
+
+# how many times did 95% CI cover true effect of forest cover
+length(which(holder$psi_max_low <= plogis(B0 + B1*max(forest)) & plogis(B0 + B1*max(forest)) <= holder$psi_max_high)) / nsim
 
 # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -358,12 +395,16 @@ intercepts <- holder %>%
   summarize(plogis(b0)) %>%
   filter(!duplicated(group))
 
+# talk about this
+holder <- holder %>%
+  filter(forest_high < 10)
+
 # est of effect of forest
 ggplot(holder, aes(rep, forest_est)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = forest_low, ymax = forest_high)) +
   geom_hline(yintercept = B1, linewidth = 1, col = 'red') +
-  facet_wrap(~n_sites + b0 + alpha, scales = 'free_y')
+  facet_wrap(~n_sites + b0 + alpha, scales = 'fixed')
 # est of occupancy at forest=0
 ggplot(holder, aes(rep, psi_mean)) + 
   geom_point() + 
