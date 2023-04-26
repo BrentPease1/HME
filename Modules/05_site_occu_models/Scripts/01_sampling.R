@@ -1,10 +1,7 @@
 library(MASS)
 library(raster)
-library(nimble)
 library(here)
 library(spdep)
-library(fasterize)
-library(verification)
 library(unmarked)
 library(ggplot2)
 library(dplyr)
@@ -27,6 +24,7 @@ distance <- as.matrix(dist(simgrid[, 1:2]))
 
 #simulate the covariates
 index <- 1:M
+
 phi  <-  runif(1, 0, 0.5)
 forest <- MASS::mvrnorm(1, rep(0, M), exp(-phi*distance))
 
@@ -139,7 +137,7 @@ points(dat[sites,1:2], pch = 19, cex=1)
 umf_sampled <- unmarkedFrameOccu(y = y[sites,],
                          siteCovs = data.frame(forest = dat[sites, c('forest')]),
                          obsCovs = list(dist = dist[sites,], elev = elev[sites,]))
-summary(umf)
+summary(umf_sampled)
 (fm3 <- occu(~dist + elev ~ forest, data = umf_sampled)) # Fit model
 lc <- linearComb(fm3, c(1, max(forest)), type="state") # Estimate occupancy on the log scale when forest=0
 (lc_fm3 <- backTransform(lc))
@@ -170,7 +168,7 @@ holder <- data.frame(n_sites = length(sites), prop_sites = length(sites)/M, n_su
 nsim <- 100
 for(i in 1:nsim){
   set.seed(73273*i)
-  sites <- sample(1:nrow(simgrid), nrow(simgrid) * 0.20)
+  sites <- sample(1:M, M * 0.20)
   umf_sampled <- unmarkedFrameOccu(y = y[sites,],
                                    siteCovs = data.frame(forest = dat[sites, c('forest')]),
                                    obsCovs = list(dist = dist[sites,], elev = elev[sites,]))
